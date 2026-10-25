@@ -1,0 +1,21 @@
+# Desktop entries hidden from the child's launcher (NoDisplay overrides in
+# ~/.local/share/applications). Interface tidying only, NOT a security control:
+# the child can still run anything the account may execute.
+# One desktop-file id per line; '#' starts a comment.
+btop.desktop
+nvim.desktop
+lazygit.desktop
+lazydocker.desktop
+htop.desktop
+Alacritty.desktop
+foot.desktop
+kitty.desktop
+org.gnome.Ptyxis.desktop
+com.mitchellh.ghostty.desktop
+xournalpp.desktop
+org.pulseaudio.pavucontrol.desktop
+nm-connection-editor.desktop
+# Omarchy TUI and agent wrappers that may exist on the child's account
+Activity.desktop
+Docker.desktop
+Neovim.desktop

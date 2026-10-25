@@ -1,0 +1,43 @@
+# Executables the child must not run, enforced with file ACLs (u:<child>:---)
+# that /usr/local/sbin/omarchy-kids-lockdown re-applies after every pacman
+# transaction. Only entries that exist on the machine are touched.
+# One absolute path per line; '#' starts a comment.
+#
+# Alternative browsers: their policy directories are also locked by the
+# browser-policy module, this is the second layer.
+/usr/bin/brave
+/usr/bin/firefox
+/usr/bin/firefox-developer-edition
+/usr/bin/google-chrome-stable
+/usr/bin/microsoft-edge-stable
+/usr/bin/vivaldi-stable
+/usr/bin/opera
+/usr/bin/zen-browser
+/usr/bin/epiphany
+/usr/bin/konqueror
+/usr/bin/torbrowser-launcher
+/usr/bin/w3m
+/usr/bin/lynx
+/usr/bin/links
+# Network tools a child does not need (plain-DNS and tunnel bypass attempts)
+/usr/bin/nmtui
+/usr/bin/nmcli
+/usr/bin/ssh
+/usr/bin/sshuttle
+/usr/bin/openvpn
+/usr/bin/wg
+/usr/bin/wg-quick
+/usr/bin/tailscale
+/usr/bin/cloudflared
+/usr/bin/dig
+/usr/bin/drill
+/usr/bin/nslookup
+# Containers and virtualisation (unrestricted network from inside)
+/usr/bin/docker
+/usr/bin/podman
+/usr/bin/distrobox
+/usr/bin/qemu-system-x86_64
+# Package building and installing as a user (AUR helpers, language installers)
+/usr/bin/yay
+/usr/bin/paru
+/usr/bin/mise

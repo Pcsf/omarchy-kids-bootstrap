@@ -1,0 +1,11 @@
+# AUR packages, built with Omarchy's yay. One per line; '#' starts a comment.
+# Code: Thonny, the beginner Python IDE (thonny 5.x, depends on mypy/basedpyright).
+thonny
+# Screen time: installed by the screen-time module, listed here so the
+# packages module keeps it in step with everything else.
+timekpr-next
+# Offline Scratch 3 builds Scratch from source with npm (slow); the Scratch
+# web app in webapps.txt is the default. Uncomment to try the offline editor.
+#scratch3
+# Tux Paint for younger children.
+#tuxpaint

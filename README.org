@@ -1,0 +1,143 @@
+#+TITLE: omarchy-kids-bootstrap
+#+AUTHOR: Pcsf
+
+Turn a fresh [[https://omarchy.org/][Omarchy]] install into a parent-managed,
+learning-first workstation for a child. Same shape as =omarchy-dev-bootstrap=:
+a thin orchestrator, numbered idempotent modules, plain-text config lists,
+=--dry-run= for a full preview. Run it as the parent account on the child's
+machine after the normal Omarchy install.
+
+* What it does
+
+Thirteen modules, in this order (=./bootstrap.sh --help= lists them):
+
+| module         | what it changes                                                                                                   |
+|----------------+-------------------------------------------------------------------------------------------------------------------|
+| preflight      | Reports Omarchy version, accounts, LUKS/btrfs/snapper, login manager, network stack. Changes nothing.             |
+| login          | Disables the SDDM autologin Omarchy's installer set up; installs an override that keeps it off; sets the hostname. |
+| child-account  | Creates the child (no wheel), sets its password, =chmod 700= on the parent's home, provisions the Omarchy desktop. |
+| packages       | Installs the learning/creative/play apps (=config/packages.txt=, =config/aur-packages.txt=).                      |
+| webapps        | Installs Omarchy web-app launchers in the child's account (Scratch, Tinkercad, ...; =config/webapps.txt=).        |
+| browser-policy | Renders a mandatory Chromium policy from =config/allowed-sites.txt=: everything blocked except the allowlist.      |
+| dns            | DNS-over-TLS to a NextDNS profile via systemd-resolved; NetworkManager ignores DHCP DNS; ufw blocks other DNS.    |
+| screen-time    | Timekpr-nExT: daily quota, allowed hours, PlayTime quota for games, tty sessions counted. Survives reboot.         |
+| desktop        | Child's Hyprland: learning shortcuts instead of Omarchy's app bindings, developer launchers hidden, quieter bar.   |
+| lockdown       | File ACLs deny the child other browsers and network tools; a pacman hook re-applies them; =su= limited to wheel.  |
+| backup         | Daily restic backup of the child's work to an external disk or NAS, as a system timer.                            |
+| ssh-admin      | sshd for the parent only, from the LAN subnet, passwords off once a key is authorized.                            |
+| snapshot       | A labelled snapper snapshot of the system (bootable from the Limine menu).                                        |
+
+Two modules print instructions instead of acting until their input exists:
+*dns* needs =NEXTDNS_PROFILE_ID=, *backup* needs =RESTIC_REPO= and a password
+file the parent creates outside git.
+
+* Usage
+
+On the child's machine, logged in as the parent (the account the Omarchy
+installer created, which is in =wheel=):
+
+#+begin_src bash
+git clone git@github.com:Pcsf/omarchy-kids-bootstrap.git ~/omarchy-kids-bootstrap
+cd ~/omarchy-kids-bootstrap
+cp config/kids.conf.example config/kids.conf
+$EDITOR config/kids.conf          # child's name, theme, NextDNS id, LAN subnet, limits (git-ignored)
+./bootstrap.sh --dry-run          # read the whole plan first
+./bootstrap.sh                    # one sudo prompt, then the child's password prompt
+./tests/acceptance.sh             # as the parent
+#+end_src
+
+Then log out, log in as the child once (Omarchy finishes its first-login
+steps), and run the child-side checks from inside that session:
+
+#+begin_src bash
+sudo install -m 755 tests/child-checks.sh /usr/local/bin/omarchy-kids-child-checks   # as the parent, once
+omarchy-kids-child-checks <parent-username>                                            # as the child
+#+end_src
+
+Re-run any module alone after editing its config: =./bootstrap.sh --only
+browser-policy=. Every module is idempotent.
+
+* Layout
+
+#+begin_example
+bootstrap.sh            orchestrator (--only, --skip, --dry-run)
+lib/common.sh           helpers: run/as_root/as_kid_script, config loading, list parsing
+config/
+  kids.conf.example     the settings template; copy to kids.conf (git-ignored, machine-local)
+  packages.txt          official-repo apps        aur-packages.txt   AUR apps (thonny, timekpr-next)
+  webapps.txt           child's web-app launchers allowed-sites.txt  browser allowlist
+  hidden-apps.txt       launcher ids hidden       blocked-commands.txt  executables ACL-denied to the child
+  backup-paths.txt      what restic backs up
+modules/NN-*.sh         one concern each, run as the parent, sudo per privileged step
+child/*.sh              scripts that run AS THE CHILD (fed on stdin: the repo is in the parent's 700 home)
+home/.config/hypr/      the child's hyprland.lua and bindings.lua (copied, not linked)
+system/                 files installed root-owned: Chromium base policy, ACL helper + pacman hook,
+                        restic job + unit
+tests/
+  selftest.sh           repo self-test, no root: syntax, config, policy rendering, planted negatives
+  acceptance.sh         security acceptance, run as the parent after bootstrap
+  child-checks.sh       the same restrictions seen from the child's account
+docs/
+  deployment-plan.org   the plan (v1.1) with the assessment of the v1.0 draft
+  operations.org        parent cheat-sheet: daily operations, maintenance, restore, troubleshooting
+#+end_example
+
+Files for the child are copied, never symlinked: the repo lives in the
+parent's home, which is mode 700, so the child's session could not follow a
+link into it.
+
+* Design decisions
+
+- *Parent runs it, not root.* =$HOME= and the clone stay the parent's; each
+  privileged step is an explicit =sudo=. Child-side steps run through
+  =sudo -u <child>= with a minimal environment.
+- *Omarchy's own per-user provisioning is reused, minus the developer extras.*
+  Omarchy 4 provisions a user from =/etc/skel= plus =omarchy-provision-user=,
+  which also installs a dozen AI coding agents through mise and fetches Node.
+  =child/provision.sh= does the essential steps (theme, keyring, user dirs,
+  default browser) and marks Omarchy's finalization and shipped migrations as
+  done, so the child's first login does not pull in the rest.
+- *Enforcement never lives in the child's home.* Policies, DNS, firewall,
+  Timekpr, ACLs are root-owned system state. The desktop module is cosmetic
+  and documented as such.
+- *Two layers for the browser.* The Chromium policy (allowlist, no DevTools,
+  no extensions, no incognito, DoH off) plus ACLs that keep the child out of
+  every other browser on the machine. Chromium policies are machine-wide, so
+  they bind the parent too when browsing on this machine; administer over SSH
+  or from another device.
+- *DNS has a device layer and should have a router layer.* The device layer
+  (DoT to NextDNS, plain DNS refused by ufw) protects this install. A router
+  or NextDNS per-device policy protects the child when this layer is bypassed.
+- *Screen time is a system quota first.* Timekpr's daily limit and allowed
+  hours are enforced by the daemon through logind, persist in
+  =/var/lib/timekpr= across reboots, and count tty sessions (off by default
+  upstream). PlayTime is the per-game quota inside that total; it is
+  process-name based and therefore the weaker of the two.
+
+* Dependencies
+
+- Omarchy 4.x (tested against 4.0.6: packaged Omarchy at =/usr/share/omarchy=,
+  =/etc/skel= from =omarchy-settings=, SDDM, systemd-resolved, NetworkManager,
+  ufw, snapper + limine-snapper-sync). Plain Arch works with warnings.
+- From Omarchy itself: =omarchy-pkg-add=, =omarchy-pkg-aur-add= (yay),
+  =omarchy-webapp-install=, =omarchy-theme-set=, =jq=, =curl=.
+- Installed by the modules: =timekpr-next= 0.5.11 (AUR), =thonny= (AUR),
+  =restic=, =openssh=, and the apps in =config/packages.txt= (all in [extra]
+  on 2026-10-25; =minecraft-launcher= is in the [omarchy] repo).
+- Accounts and services the parent creates: a NextDNS profile, a backup
+  destination (external disk or NAS mount), an SSH key on the parent's laptop.
+- Paid and optional: Minecraft Java needs a Microsoft account; the launcher
+  lines in =config/packages.txt= are commented out.
+
+* Testing
+
+=tests/selftest.sh= runs without root: it parses every script, renders the
+policy, checks that every web app host is allowlisted, and runs a planted
+negative for each absence check. Run it after any edit. =tests/acceptance.sh=
+and =tests/child-checks.sh= are the security acceptance of the plan and need
+the real machine.
+
+Verified on 2026-10-25 on an Omarchy 4.0.6 development machine: self-test
+passes and =./bootstrap.sh --dry-run= completes for every module. A live run
+on the target machine (Beelink SER5 MAX) is still to be done; shellcheck was
+not available on the machine where the scripts were written.

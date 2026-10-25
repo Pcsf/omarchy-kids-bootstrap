@@ -1,0 +1,14 @@
+# Web apps installed for the CHILD as Omarchy launchers (Chromium --app windows).
+# Format: name|url|icon
+# - icon: a bundled icon name under /usr/share/icons/hicolor, or empty to let
+#   Omarchy fetch the site's own icon. Empty is the safe default.
+# - Every domain here must also appear in allowed-sites.txt, or the policy
+#   blocks the window with ERR_BLOCKED_BY_ADMINISTRATOR.
+Scratch|https://scratch.mit.edu/projects/editor/|
+Tinkercad|https://www.tinkercad.com/dashboard|
+Blockly Games|https://blockly.games/|
+Code.org|https://studio.code.org/|
+Khan Academy|https://www.khanacademy.org/|
+Typing Club|https://www.typingclub.com/|
+# Dutch school practice
+Squla|https://www.squla.nl/|

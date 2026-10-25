@@ -1,0 +1,13 @@
+# Directories backed up daily by restic, relative to the child's home.
+# One per line; '#' starts a comment. Missing directories are skipped.
+Documents
+Projects
+Pictures
+Designs
+Videos
+# Scratch saves projects as .sb3 downloads by default
+Downloads
+# Thonny settings and GCompris/Luanti saves
+.config/Thonny
+.local/share/luanti
+.config/gcompris-qt

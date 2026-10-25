@@ -1,0 +1,36 @@
+# Learning, creative and play applications from the official repositories.
+# One package per line; '#' starts a comment. Installed only if missing.
+# Verified in [extra] on 2026-10-25 unless noted.
+
+# Code
+python-pygame
+# Thonny is in the AUR (see aur-packages.txt).
+
+# Learn
+gcompris-qt                  # GCompris (Qt edition is the current upstream build)
+kturtle
+
+# Draw
+krita
+inkscape
+
+# Design (Tinkercad is a web app; FreeCAD and OpenSCAD for a later stage)
+#freecad
+#openscad
+
+# Explore
+stellarium
+#kstars
+
+# Play
+luanti
+# Minecraft Java needs a paid Microsoft account. Pick one launcher when ready:
+#prismlauncher
+#minecraft-launcher          # [omarchy] repo
+#jdk21-openjdk               # Java for Minecraft 1.20.5+
+
+# Music (optional)
+#musescore
+
+# Tools used by the modules
+restic

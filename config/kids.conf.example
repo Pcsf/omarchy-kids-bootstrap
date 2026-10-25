@@ -1,0 +1,49 @@
+# config/kids.conf -- settings for this kids workstation. Sourced by every module.
+# Copy this example to config/kids.conf (git-ignored) and edit it there.
+# Plain bash assignments; keep values quoted. No secrets here: the restic
+# password lives in /etc/omarchy-kids/restic.password, created by the parent.
+
+# The child's account (created by the child-account module if missing).
+KID_USER="kid"
+KID_FULL_NAME="Kid"
+# Omarchy theme applied to the child's desktop. List: ls /usr/share/omarchy/themes
+KID_THEME="catppuccin"
+
+# The parent/admin account. Defaults to whoever runs bootstrap.sh.
+#PARENT_USER="parent"
+
+# Hostname to set (empty keeps the installer's choice).
+KIDS_HOSTNAME="kidpc"
+
+# NextDNS profile ID (the 6 hex characters shown in the NextDNS dashboard).
+# Empty skips the DNS module with instructions.
+NEXTDNS_PROFILE_ID=""
+
+# LAN subnet allowed to reach SSH (empty allows any source, rate limited).
+LAN_CIDR="192.168.1.0/24"
+# auto: disable SSH passwords only once the parent has an authorized key.
+# yes/no force it either way (no is unsafe, yes can lock you out).
+SSH_PASSWORDLESS="auto"
+
+# Screen time (Timekpr). Days are Monday..Sunday, 7 values separated by ';'.
+# Total daily session time, then the hours of the day a login is allowed.
+TIME_LIMITS="2h;2h;2h;2h;2h;3h;3h"
+ALLOWED_HOURS_WEEKDAY="7;8;9;10;11;12;13;14;15;16;17;18;19"
+ALLOWED_HOURS_WEEKEND="8;9;10;11;12;13;14;15;16;17;18;19;20"
+# What happens when time is up: terminate (log out), lock, suspend, shutdown.
+LOCKOUT_TYPE="terminate"
+# PlayTime: a separate, smaller quota counted only while listed processes run.
+PLAYTIME_ENABLED=1
+PLAYTIME_LIMITS="1h;1h;1h;1h;1h;1h30m;1h30m"
+# process-name[Description];... as Timekpr expects (names as in /proc/<pid>/comm).
+PLAYTIME_ACTIVITIES="luanti[Luanti];prismlauncher[Minecraft launcher];java[Minecraft]"
+
+# Deny the child alternative browsers and network tools (config/blocked-commands.txt)
+# with file ACLs that a pacman hook re-applies after every upgrade.
+LOCKDOWN_ENABLED=1
+
+# Backups (restic). Empty repo skips the module with instructions.
+# Example: a mounted external disk or NAS share.
+RESTIC_REPO=""
+RESTIC_PASSWORD_FILE="/etc/omarchy-kids/restic.password"
+BACKUP_ONCALENDAR="*-*-* 19:00:00"

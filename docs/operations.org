@@ -1,0 +1,121 @@
+#+TITLE: Operations: the parent's cheat-sheet
+#+AUTHOR: Pcsf
+
+Everything here runs as the parent, on the machine or over SSH.
+
+* Daily and weekly
+
+| need                                   | command                                                          |
+|----------------------------------------+------------------------------------------------------------------|
+| today's usage and time left            | =sudo timekpra --getuserinfort kid=                              |
+| give 30 more minutes today             | =sudo timekpra --settimeleft kid + 30m=                          |
+| take 30 minutes away today             | =sudo timekpra --settimeleft kid - 30m=                          |
+| change the standing limits             | edit =config/kids.conf=, =./bootstrap.sh --only screen-time=     |
+| holiday limits for a while             | =sudo timekpra --settimelimits kid '3h;3h;3h;3h;3h;3h;3h'= (re-run the module to restore) |
+| GUI for all of the above               | =timekpr-admin= (asks for the parent's password)                 |
+| allow a new website                    | add the domain to =config/allowed-sites.txt=, =./bootstrap.sh --only browser-policy= |
+| add a web app launcher                 | add a line to =config/webapps.txt=, =./bootstrap.sh --only webapps= |
+| install an app                         | add it to =config/packages.txt=, =./bootstrap.sh --only packages= |
+| system update                          | =omarchy-update= as the parent (the child's bar no longer prompts for it) |
+| backup status                          | =systemctl status omarchy-kids-backup.timer=; =sudo journalctl -u omarchy-kids-backup -n 30= |
+| what is in the backup                  | =sudo bash -c 'set -a; . /etc/omarchy-kids/backup.env; restic snapshots'= |
+| security regression                    | =./tests/acceptance.sh=                                          |
+
+Timekpr's web page: https://mjasnik.gitlab.io/timekpr-next/ (CLI: =sudo timekpra --help=).
+
+* Maintenance schedule
+
+| when                 | what                                                            |
+|----------------------+-----------------------------------------------------------------|
+| daily (automatic)    | restic backup at 19:00 (=BACKUP_ONCALENDAR=)                    |
+| weekly               | =omarchy-update=; review NextDNS logs; review website requests  |
+| monthly              | restore one file (below); =./tests/acceptance.sh=; =sudo snapper -c root list= |
+| after a major update | =./bootstrap.sh --dry-run= to see what drifted, then re-run; =./tests/acceptance.sh= |
+| before a risky change | =./bootstrap.sh --only snapshot=                               |
+
+* Restore
+
+** One file or folder from the backup
+
+#+begin_src bash
+sudo bash -c 'set -a; . /etc/omarchy-kids/backup.env
+  restic snapshots                                   # pick an ID, or use latest
+  restic restore latest --target /tmp/restore --include /home/kid/Projects/game1'
+sudo chown -R kid:kid /tmp/restore/home/kid/Projects/game1
+sudo mv /tmp/restore/home/kid/Projects/game1 /home/kid/Projects/
+#+end_src
+
+** The whole system after a broken update
+
+Reboot, pick an older snapshot in the Limine boot menu, then in that
+session run =omarchy-snapshot restore= (Omarchy's wrapper around
+=limine-snapper-restore=). Snapshots do not include =/home=; the child's
+files are on the backup destination.
+
+** A new machine
+
+Install Omarchy, clone this repo as the parent, copy the restic password
+file back to =/etc/omarchy-kids/restic.password= (from the family password
+manager), run =./bootstrap.sh=, then restore =/home/kid= from the backup.
+
+* Security tests (what acceptance.sh checks, and how to read a failure)
+
+- *Accounts.* Child in no privileged group, =sudo -l -U kid= empty, parent
+  home 700. A failure here blocks everything else.
+- *Login.* No SDDM =*.conf= names an autologin user; the override file exists.
+- *Browser policy.* =omarchy-kids.json= root-owned 644, =URLBlocklist= is
+  =*=, allowlist non-empty, child cannot write it. In the child's Chromium
+  =chrome://policy= must show these as mandatory.
+- *DNS.* resolved reports =+DNSOverTLS=; https://test.nextdns.io reports the
+  configured profile; a TCP connect to 1.1.1.1:53 fails.
+- *Screen time.* =timekpr.service= active; tty counted; the child has a
+  configuration; the child can neither stop the service nor run =timekpra=.
+- *Lockdown.* Every present blocked command carries =user:kid:---=; the
+  pacman hook exists; =pam_wheel= active for =su=.
+- *Backup.* Timer enabled; password file root 600; repository answers.
+- *SSH.* Effective config (=sshd -T=) has AllowUsers parent, no root, no
+  passwords once a key exists.
+
+Tests from the child's side (=child-checks.sh=) must be run inside the
+child's own session: they prove the same things with the child's identity.
+
+* Known limitations (state them, do not discover them later)
+
+- Chromium policies are machine-wide. The parent's browsing on this machine
+  is allowlisted too. Use another device or SSH for administration.
+- PlayTime matches process names. A child who learns to copy a binary under
+  another name defeats the per-game quota; the daily total still holds.
+- DNS filtering on the device can be bypassed by a VPN or DoH client the
+  child manages to run. The ACL list denies the common tools, the browser
+  policy turns DoH off, but the real control is the router/NextDNS policy
+  per device. Configure it.
+- Omarchy's first-login step shows a one-time "Update System" toast to the
+  child; clicking it fails (no sudo). Harmless.
+- Removing the =omarchy.tray= widget from the bar would hide Timekpr's
+  countdown icon; the desktop module keeps it.
+- A tty login counts as screen time, but the child can still open a tty and
+  use the shell within the quota. That is intended: the account is
+  unprivileged, and a shell is part of learning.
+
+* Troubleshooting
+
+- *A site shows ERR_BLOCKED_BY_ADMINISTRATOR.* Its assets come from a domain
+  not in the allowlist. Add the domain, re-run =--only browser-policy=,
+  reload. =chrome://policy/logs= in the child's browser lists blocked URLs.
+- *Web app opens blank.* Same cause; the launcher's URL host must be
+  allowlisted (the webapps module warns about it).
+- *Timekpr says "no user config".* The daemon was not up when the module ran;
+  =./bootstrap.sh --only screen-time= again.
+- *Timekpr ends the session but the screen stays black.* Known upstream
+  issue; set =LOCKOUT_TYPE="lock"= or ="kill"= in =config/kids.conf= and
+  re-run the module.
+- *No DNS at all after the dns module.* =resolvectl status= should list the
+  NextDNS servers with =+DNSOverTLS=. If the profile ID is wrong the TLS name
+  does not resolve: fix =NEXTDNS_PROFILE_ID=, re-run. To undo:
+  =sudo rm /etc/systemd/resolved.conf.d/50-omarchy-kids-nextdns.conf && sudo systemctl restart systemd-resolved=
+  and =sudo ufw delete deny out 53=.
+- *Locked out of SSH.* Log in locally as the parent; =sudo rm
+  /etc/ssh/sshd_config.d/20-omarchy-kids-admin.conf && sudo systemctl reload sshd=.
+- *The child needs a tool that is ACL-denied.* Remove the line from
+  =config/blocked-commands.txt=, =./bootstrap.sh --only lockdown=, then
+  =sudo setfacl -x u:kid /usr/bin/<tool>= for the already-denied file.

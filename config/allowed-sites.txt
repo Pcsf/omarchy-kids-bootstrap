@@ -1,0 +1,53 @@
+# Browser allowlist for the child. Everything else is blocked by policy.
+# One URL pattern per line, Chromium URLBlocklist/URLAllowlist syntax:
+#   example.com        matches example.com and every subdomain
+#   .example.com       matches example.com only, no subdomains
+#   example.com/path   matches that path prefix
+# '#' starts a comment. Changes apply after the browser-policy module re-runs.
+#
+# Most sites load assets from other domains (CDNs, asset hosts, login
+# providers). When a page looks broken for the child, test the same page as
+# the parent with the policy temporarily widened, or read the blocked URLs in
+# chrome://policy/logs, then add the missing domain below and re-run
+# ./bootstrap.sh --only browser-policy.
+
+# Code
+scratch.mit.edu
+scratch-cdn.mit.edu
+blockly.games
+code.org
+studio.code.org
+curriculum.code.org
+codeprojects.org
+tts.code.org
+
+# Design
+tinkercad.com
+csg.tinkercad.com
+autodesk.com
+accounts.autodesk.com
+static-dc.autodesk.net
+api.userprofile.autodesk.com
+
+# Learn
+khanacademy.org
+cdn.kastatic.org
+fastly.kastatic.org
+typingclub.com
+squla.nl
+gcompris.net
+nl.wikipedia.org
+en.wikipedia.org
+upload.wikimedia.org
+wikimedia.org
+
+# Explore
+stellarium-web.org
+nasa.gov
+esa.int
+
+# Internal browser pages the child may open
+chrome://policy
+chrome://newtab
+chrome://new-tab-page
+chrome://downloads

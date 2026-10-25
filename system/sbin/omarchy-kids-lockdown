@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# omarchy-kids-lockdown -- deny the child account the executables listed in
+# /etc/omarchy-kids/blocked-commands.txt with a user ACL. Runs as root from
+# the bootstrap and from a pacman post-transaction hook.
+set -euo pipefail
+
+ETC=/etc/omarchy-kids
+# shellcheck source=/dev/null
+source "$ETC/kids.env"
+: "${KID_USER:?KID_USER missing in $ETC/kids.env}"
+id "$KID_USER" >/dev/null 2>&1 || { echo "omarchy-kids-lockdown: user $KID_USER missing" >&2; exit 0; }
+
+applied=0
+while IFS= read -r line || [ -n "$line" ]; do
+    path="${line%%#*}"
+    path="${path//[[:space:]]/}"
+    [ -n "$path" ] || continue
+    # Resolve the final binary so a symlinked command is denied too.
+    target="$(readlink -f "$path" 2>/dev/null || true)"
+    for f in "$path" "$target"; do
+        [ -n "$f" ] && [ -f "$f" ] || continue
+        if getfacl -p "$f" 2>/dev/null | grep -qx "user:$KID_USER:---"; then
+            continue
+        fi
+        setfacl -m "u:$KID_USER:---" "$f"
+        applied=$((applied + 1))
+    done
+done <"$ETC/blocked-commands.txt"
+
+echo "omarchy-kids-lockdown: ACLs applied for $KID_USER (new: $applied)"

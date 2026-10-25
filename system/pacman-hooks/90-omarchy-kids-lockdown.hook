@@ -1,0 +1,13 @@
+# Re-apply the child's deny ACLs after packages are installed or upgraded:
+# pacman writes a fresh file, and a fresh file has no ACL.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Path
+Target = usr/bin/*
+Target = opt/*/*
+
+[Action]
+Description = Re-applying omarchy-kids lockdown ACLs...
+When = PostTransaction
+Exec = /usr/local/sbin/omarchy-kids-lockdown

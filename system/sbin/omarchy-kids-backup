@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# omarchy-kids-backup -- back up the child's directories with restic.
+# Runs as root from omarchy-kids-backup.service or by hand.
+set -euo pipefail
+
+ETC=/etc/omarchy-kids
+# shellcheck source=/dev/null
+source "$ETC/backup.env"
+export RESTIC_REPOSITORY RESTIC_PASSWORD_FILE
+: "${KID_USER:?}"
+
+home="$(getent passwd "$KID_USER" | cut -d: -f6)"
+paths=()
+while IFS= read -r line || [ -n "$line" ]; do
+    rel="${line%%#*}"
+    rel="${rel#"${rel%%[![:space:]]*}"}"
+    rel="${rel%"${rel##*[![:space:]]}"}"
+    [ -n "$rel" ] || continue
+    [ -e "$home/$rel" ] && paths+=("$home/$rel")
+done <"$ETC/backup-paths.txt"
+
+if [ "${#paths[@]}" -eq 0 ]; then
+    echo "omarchy-kids-backup: nothing to back up under $home" >&2
+    exit 0
+fi
+
+# A repository on the same disk as the system is not a backup, and a
+# repository path whose disk is not mounted must not be created on the empty
+# mount point. Compare block devices, ignoring btrfs subvolume suffixes.
+case "$RESTIC_REPOSITORY" in
+    /*)
+        parent="$(dirname "$RESTIC_REPOSITORY")"
+        if [ ! -d "$parent" ]; then
+            echo "omarchy-kids-backup: $parent does not exist (backup disk not mounted?)" >&2
+            exit 1
+        fi
+        root_dev="$(findmnt -no SOURCE / | sed 's/\[.*//')"
+        repo_dev="$(findmnt -T "$parent" -no SOURCE | sed 's/\[.*//')"
+        if [ "$root_dev" = "$repo_dev" ]; then
+            echo "omarchy-kids-backup: $parent is on the system disk ($root_dev); use an external disk or NAS" >&2
+            exit 1
+        fi
+        ;;
+esac
+
+if ! restic cat config >/dev/null 2>&1; then
+    echo "omarchy-kids-backup: initializing repository $RESTIC_REPOSITORY"
+    restic init
+fi
+
+echo "omarchy-kids-backup: backing up ${paths[*]}"
+restic backup --tag omarchy-kids --exclude-caches "${paths[@]}"
+restic forget --tag omarchy-kids --keep-daily 14 --keep-weekly 8 --keep-monthly 12 --prune
+echo "omarchy-kids-backup: done"

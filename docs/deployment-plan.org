@@ -1,0 +1,273 @@
+#+TITLE: Omarchy Kids: Deployment Plan
+#+AUTHOR: Pcsf
+#+DATE: 2026-10-25
+
+- Version :: 1.1 (revises the v1.0 draft of 2026-10-25)
+- Target :: learning-first Linux workstation for a 9-year-old
+- Hardware :: Beelink SER5 MAX (Ryzen 7 7735U, Radeon 680M, 24 GB, 1 TB NVMe), Dell Pro 24 E2425HSM
+- OS :: Omarchy 4.x (Arch Linux + Hyprland)
+- Administrator :: parent; primary user: child (restricted account)
+- Automation :: this repository (=./bootstrap.sh=); the manual steps that remain are listed per phase
+
+* 1. Assessment of the v1.0 draft
+
+The draft is sound in its principles and its layering; the two risks it
+flagged as open ("Omarchy multi-user issues" and "screen-time bypass") were
+checked against a running Omarchy 4.0.6 and both have a concrete answer.
+What changed, and why:
+
+** Verified facts the draft had to assume
+
+- *Multi-user works in Omarchy 4.* Omarchy is now a package set:
+  =/usr/share/omarchy= holds the system, =/etc/skel= (from =omarchy-settings=)
+  holds the whole per-user config, and =useradd -m= gives a new user a
+  complete Hyprland + bar + terminal setup. The per-user finalization
+  (=omarchy-provision-user=) is a documented script; the bootstrap runs its
+  essential half for the child. Fallback distribution: no longer needed for
+  this reason.
+- *Autologin is one file.* =/etc/sddm.conf.d/autologin.conf= written by the
+  ISO; nothing in the installed system rewrites it. The login module renames
+  it and installs an override with an empty user.
+- *Snapshots exist.* btrfs root under LUKS, snapper =root= config,
+  =limine-snapper-sync=, and =omarchy-snapshot create/restore=. Snapshots do
+  not cover =/home=, as the draft said.
+- *Packages.* gcompris-qt, krita, inkscape, stellarium, luanti,
+  python-pygame, kturtle, prismlauncher, restic are in [extra];
+  minecraft-launcher is in the [omarchy] repo; thonny 5.0 and timekpr-next
+  0.5.11 are in the AUR. No official Scratch desktop package: the Scratch
+  editor is a web app (an AUR =scratch3= builds it from source for offline
+  use).
+- *Timekpr-nExT fits.* It tracks sessions through systemd-logind, which is
+  how Hyprland sessions under SDDM/uwsm are registered, so Wayland is a
+  first-class case. Its state is in =/var/lib/timekpr= and persists across
+  logout, relogin and reboot. Two things the draft could not know: tty
+  sessions are *excluded* by default (the module turns that on), and it has a
+  PlayTime feature that counts time only while named processes run, which
+  maps onto the draft's "recreational time" exactly.
+- *Chromium policy path.* =/etc/chromium/policies/managed= exists and Omarchy
+  itself manages it (it purges non-root files there and writes a theme-color
+  policy), so a root-owned allowlist policy coexists. Omarchy's web apps are
+  Chromium =--app= windows, so the same policy governs Scratch and Tinkercad
+  launchers.
+- *Network stack.* NetworkManager + systemd-resolved + ufw are all active on
+  Omarchy 4, which is what the dns module builds on.
+
+** Changes to the plan
+
+1. *The browser default is Chromium (Omarchy's), the parent's browser is not
+   on this machine.* Chromium policies bind every user; the draft noted it.
+   The answer is to administer from another device or SSH, and to deny the
+   child every other browser with ACLs (lockdown module) rather than hope
+   none is installed.
+2. *Screen time has two quotas.* A system-wide daily limit with allowed hours
+   (the reliable one), plus PlayTime for games (the draft's 60/90 min),
+   counted inside the total. Defaults: 2 h weekdays, 3 h weekends, games
+   1 h / 1 h 30; 07:00-20:00 / 08:00-21:00. All in =config/kids.conf=.
+3. *DNS is enforced on the device too.* The draft put filtering at the router
+   only. Both: DoT to the NextDNS profile from systemd-resolved, DHCP DNS
+   ignored, ufw refusing plain DNS and DoT to anyone else, browser DoH off.
+   The router policy remains step one of Phase 3 because it is the layer the
+   child cannot touch.
+4. *A lockdown layer was added.* ACLs on alternative browsers, VPN/tunnel
+   clients, nmcli, docker, AUR helpers; re-applied by a pacman hook after
+   every upgrade; =su= limited to wheel. The draft's "alternative browser and
+   network bypass paths have been evaluated" becomes a configured list and a
+   test.
+5. *Omarchy's developer extras are kept out of the child's account.* The
+   per-user provisioning installs AI coding agents and Node through mise;
+   the child's provisioning skips them and marks them done.
+6. *Acceptance is a script, not a checklist.* =tests/acceptance.sh= (parent)
+   and =tests/child-checks.sh= (child) implement Phase 6; each absence check
+   has a planted positive so an empty result means something.
+7. *The repository layout follows omarchy-dev-bootstrap*, not the draft's
+   tree: modules + config lists + system files, Org documentation.
+
+** Residual risks (kept in the register below)
+
+Process-name PlayTime is bypassable by renaming; device-side DNS is
+bypassable by a client the child manages to run; Timekpr upstream is in
+low-maintenance mode; Omarchy major updates can change =/etc/skel= and the
+Lua config format (the child's two Hyprland files would need a diff against
+the new skel).
+
+* 2. Objectives and principles (unchanged from v1.0)
+
+Learn programming and computational thinking; create (drawing, 3D, design);
+explore mathematics, science, astronomy, engineering; practise Dutch and
+English; play selected games; experiment independently inside boundaries;
+build healthy habits.
+
+Principles: learning first, open source, safety by design (not voluntary
+compliance), parent-managed, progressive autonomy, reproducible (this repo),
+privacy, recoverable.
+
+* 3. Architecture
+
+#+begin_example
+Home network
+  router / firewall ........ child device policy (NextDNS or equivalent), ideally a child VLAN
+  |
+  Beelink SER5 MAX (Omarchy 4, LUKS + btrfs, snapper, ufw, sshd for the parent)
+    parent account ......... wheel, SSH key, runs this repo
+    child account .......... no wheel; Chromium allowlist policy; Timekpr quota;
+                             ACL-denied tools; restic-backed home
+#+end_example
+
+Security model: the child cannot escalate, cannot change system policy,
+cannot read the parent's files, cannot stop the time or DNS services, cannot
+install software system-wide, and cannot reset the quota by logging out,
+rebooting or switching to a tty. Every one of these is a line in
+=tests/acceptance.sh= or =tests/child-checks.sh=.
+
+* 4. Phases
+
+Each phase names what the bootstrap does and what stays manual. Exit criteria
+are the acceptance tests unless stated.
+
+** Phase 1: base system (manual)
+
+Install Omarchy on the NVMe with LUKS (the installer offers it), create the
+parent account, update, reboot. Set UEFI admin password; disable external
+boot after installation. Verify =hyprctl monitors= shows 1920x1080 at 100 Hz,
+scale 1. Then clone this repo as the parent and run =./bootstrap.sh
+--dry-run=.
+
+Exit: Omarchy boots, graphics/audio/network work, LUKS prompt at boot,
+preflight reports LUKS + snapper present.
+
+** Phase 2: accounts and login (modules: login, child-account)
+
+Automated: autologin off, hostname, child created without wheel, password
+prompt, parent home 700, project directories, Omarchy desktop provisioned
+for the child (theme, keyring, user dirs, default browser), Omarchy's
+finalization and migrations marked done.
+
+Manual: log in as the child once; Omarchy's first-login step enables the
+user services and shows its welcome toast. Log out, log in, reboot, repeat.
+
+Exit: acceptance "accounts" and "login" sections pass; child-checks pass for
+sudo, parent home, /etc.
+
+** Phase 3: internet safety (modules: browser-policy, dns, lockdown)
+
+Manual first: create the NextDNS profile (parental control categories,
+SafeSearch, YouTube restricted, malware protection, logs with short
+retention); on the router, point the child's device (by MAC) at that
+profile, or put it on a child VLAN whose DNS is forced. Put the profile ID
+in =config/kids.conf=.
+
+Automated: allowlist policy in every Chromium-family policy directory;
+DoT to NextDNS, DHCP DNS ignored, ufw DNS rules; ACLs and pacman hook;
+=pam_wheel=.
+
+Exit: acceptance "browser policy", "dns", "lockdown" pass; from the child's
+session =chrome://policy= shows the mandatory policies, an allowed site
+loads, a random site shows ERR_BLOCKED_BY_ADMINISTRATOR, https://test.nextdns.io
+reports the profile.
+
+** Phase 4: screen time (module: screen-time)
+
+Automated: Timekpr installed and enabled, tty counted, daily limits, allowed
+hours, lockout type, PlayTime for games.
+
+Manual test, from the child's account: set a 5-minute limit for the test
+(=sudo timekpra --settimeleft kid - ...= or a temporary =TIME_LIMITS=),
+watch the countdown, confirm the session ends, log back in and confirm no
+time was regained, reboot and confirm again, switch to tty3 and confirm
+the tty login is counted (=timekpra --getuserinfort=). Then restore limits
+with =./bootstrap.sh --only screen-time=.
+
+Exit: acceptance "screen time" passes; the manual test behaves.
+
+** Phase 5: learning environment (modules: packages, webapps, desktop)
+
+Automated: the apps, the web-app launchers, the child's shortcuts
+(SUPER+SHIFT+C Code, S School, D Draw, O Objects in 3D, E Explore, G Games,
+A Scratch), hidden developer launchers, bar without the update prompt.
+
+Manual: open each app as the child, save a project, reopen it; try the web
+apps and add any missing asset domain to the allowlist; check Luanti runs
+smoothly on the Radeon 680M; decide on Minecraft (paid account) and
+uncomment a launcher if wanted.
+
+** Phase 6: backup and remote administration (modules: backup, ssh-admin, snapshot)
+
+Manual first: mount the backup disk or NAS share, create the restic password
+file (the module prints the exact commands), save the password in the family
+password manager, copy the parent's SSH public key to the machine
+(=ssh-copy-id=).
+
+Automated: restic repository, daily timer, first backup; sshd for the parent
+from the LAN with passwords off once the key exists; labelled snapshot.
+
+Exit: acceptance "backup", "ssh", "snapshots" pass; one file restored by hand
+(docs/operations.org).
+
+** Phase 7: acceptance and onboarding
+
+Run =tests/acceptance.sh= as the parent and =tests/child-checks.sh= as the
+child. Any FAIL is either fixed or written into section 7 as a known
+limitation with its compensating control. Then the first month of projects
+(section 6).
+
+* 5. Learning environment
+
+Six activities, two apps each to start:
+
+| activity | apps                                        | first goals                                  |
+|----------+---------------------------------------------+----------------------------------------------|
+| Code     | Scratch (web), Thonny + Python + Pygame     | events, loops, variables, debugging          |
+| Learn    | GCompris, KTurtle, Khan Academy, Squla      | maths, reading, Dutch and English            |
+| Draw     | Krita, Inkscape                             | drawing, geometry, visual communication      |
+| Design   | Tinkercad (web); later FreeCAD/OpenSCAD     | spatial reasoning, dimensions, 3D printing   |
+| Explore  | Stellarium; later KStars                    | astronomy, physics, curiosity                |
+| Play     | Luanti; Minecraft Java on parent decision   | single player, no public servers, chat off   |
+
+Play rules: single-player first, no unrestricted public multiplayer, chat
+disabled or controlled, no third-party installers, parent approval for new
+games. PlayTime enforces the minutes.
+
+* 6. First month
+
+| week | tool      | project                                          | concepts                               |
+|------+-----------+--------------------------------------------------+----------------------------------------|
+|    1 | Scratch   | a character moved by the keyboard                | events, coordinates, loops             |
+|    2 | Scratch   | a small game with score and collisions           | variables, conditions, input           |
+|    3 | Tinkercad | nameplate or keyring, printed if possible        | 3D geometry, dimensions, constraints   |
+|    4 | Thonny    | a small interactive Python program               | variables, input/output, debugging     |
+
+Short sessions, concrete projects, immediate visual feedback. No syntax
+drills, no long lectures, no heavy IDEs.
+
+* 7. Risk register
+
+| risk                                   | impact                    | mitigation                                                           |
+|----------------------------------------+---------------------------+----------------------------------------------------------------------|
+| Omarchy major update changes skel/Lua  | child desktop breaks      | snapshot before updates; diff =home/.config/hypr= against new skel   |
+| PlayTime bypass by renaming a binary   | more game time            | daily total still enforced; review =getuserinfort= weekly            |
+| VPN/DoH client run by the child        | unfiltered DNS            | ACL list, DoH off in browser, router/NextDNS per-device policy       |
+| Timekpr upstream unmaintained          | breakage after Python/GTK updates | pin by testing after updates; fallback: =pam_time= access windows |
+| Allowlist too tight                    | broken educational sites  | =chrome://policy/logs=, add domains, re-run module                   |
+| Chromium policy binds the parent       | parent browsing limited   | administer from another device or SSH                                |
+| SSD failure                            | lost projects             | restic to external disk/NAS, monthly restore test                    |
+| Lockout from SSH or sudo               | no remote admin           | local parent login; drop-in removal documented                       |
+| Broken Arch update                     | unbootable                | snapper + Limine snapshot boot, =omarchy-snapshot restore=           |
+
+* 8. Progressive autonomy
+
+| stage        | gains                                   | keeps                                  |
+|--------------+-----------------------------------------+----------------------------------------|
+| Foundation   | the six activities, approved games      | allowlist, quotas, no shell needed     |
+| Exploration  | Python projects, electronics, more sites | allowlist widened per request          |
+| Development  | git, terminal tools, wider web          | DNS filtering, quotas, no sudo         |
+| Independence | own software choices                    | risk-based supervision                 |
+
+Technical ability and online judgement are separate axes; widen the
+allowlist for programming resources without dropping the filtering.
+
+* 9. Future options (not in the initial deployment)
+
+Parent dashboard for usage and requests; local educational LLM (Radeon 680M
+with 24 GB shared memory can run a small model) with child-appropriate
+interaction and no tool execution; microcontroller environment; learning
+portfolio. Each is its own project once the baseline above is stable.

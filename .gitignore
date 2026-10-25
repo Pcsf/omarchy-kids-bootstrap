@@ -1,0 +1,9 @@
+*.bak.*
+*.swp
+*~
+# Never commit secrets or machine-local state.
+*.password
+*.key
+.env
+# The real settings (child name, subnet, NextDNS id) stay on the machine.
+config/kids.conf
