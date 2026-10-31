@@ -4,7 +4,7 @@
 
 # Code
 python-pygame
-# Thonny is in the AUR (see aur-packages.txt).
+# Thonny is installed with uv (see modules/25-packages.sh).
 
 # Learn
 gcompris-qt                  # GCompris (Qt edition is the current upstream build)
