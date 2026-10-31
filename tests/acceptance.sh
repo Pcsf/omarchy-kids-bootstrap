@@ -122,7 +122,14 @@ if systemctl is-active sshd >/dev/null 2>&1; then
     eff="$(sudo sshd -T 2>/dev/null)"
     grep -qi "^allowusers $PARENT_USER" <<<"$eff" && pass "sshd AllowUsers $PARENT_USER" || failed "sshd AllowUsers not $PARENT_USER"
     grep -qi "^permitrootlogin no" <<<"$eff" && pass "sshd PermitRootLogin no" || failed "sshd PermitRootLogin not no"
-    if grep -qi "^passwordauthentication no" <<<"$eff"; then pass "sshd passwords off"; else failed "sshd still accepts passwords (authorize a key, re-run --only ssh-admin)"; fi
+    if grep -qi "^passwordauthentication no" <<<"$eff"; then
+        pass "sshd passwords off"
+    elif [ "${SSH_PASSWORDLESS:-auto}" != yes ] && ! sudo test -s "$parent_home/.ssh/authorized_keys"; then
+        # Password logins are the intended mode until a key is authorized.
+        echo "NOTE  sshd accepts passwords (no authorized key for $PARENT_USER; optional: ssh-copy-id, then re-run --only ssh-admin)"
+    else
+        failed "sshd still accepts passwords although a key is authorized (re-run --only ssh-admin)"
+    fi
 else
     echo "SKIP  sshd not active"
 fi
