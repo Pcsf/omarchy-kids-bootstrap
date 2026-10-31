@@ -38,6 +38,19 @@ count_tty_sessions() {
     as_root systemctl restart timekpr.service
 }
 
+# Per-user PlayTime is ignored (and reads back False) until PlayTime is
+# switched on globally in timekpr.conf; timekpra has no option for that.
+enable_playtime_globally() {
+    [ "$PLAYTIME_ENABLED" = "1" ] || return 0
+    step "Enabling PlayTime globally in $TK_CONF"
+    if [ "$DRY_RUN" -eq 0 ] && grep -qE '^TIMEKPR_PLAYTIME_ENABLED = True' "$TK_CONF"; then
+        note "already enabled."
+        return 0
+    fi
+    as_root sed -i -e 's/^TIMEKPR_PLAYTIME_ENABLED = .*/TIMEKPR_PLAYTIME_ENABLED = True/' "$TK_CONF"
+    as_root systemctl restart timekpr.service
+}
+
 # Hyprland's lock screen does not tell logind the session is locked, so
 # Timekpr kept counting. A user service in the child's session sets the
 # session's IdleHint/LockedHint while hyprlock runs.
@@ -98,8 +111,7 @@ configure_user() {
         tka --setplaytimeactivities "$KID_USER" "$PLAYTIME_ACTIVITIES"
         # PlayTime counts inside the daily total, not on top of it.
         tka --setplaytimelimitoverride "$KID_USER" false
-        # Enable last: setting the override after the enable flag left
-        # PLAYTIME_ENABLED at False on timekpr-next 0.5.x.
+        # Needs TIMEKPR_PLAYTIME_ENABLED = True (enable_playtime_globally).
         tka --setplaytimeenabled "$KID_USER" true
         if [ "$DRY_RUN" -eq 0 ] && ! sudo timekpra --getuserinfo "$KID_USER" | grep -qx 'PLAYTIME_ENABLED: True'; then
             warn "Timekpr did not keep PLAYTIME_ENABLED=True; check: sudo timekpra --getuserinfo $KID_USER"
@@ -118,6 +130,7 @@ module_main() {
     require_parent
     install_timekpr
     count_tty_sessions
+    enable_playtime_globally
     configure_user
     install_lockhint
     note "Parent tools: 'sudo timekpra --settimeleft $KID_USER + 30m' adds time today;"
