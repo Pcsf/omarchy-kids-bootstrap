@@ -15,6 +15,26 @@ SDDM_DIR=/etc/sddm.conf.d
 OVERRIDE="$SDDM_DIR/zz-omarchy-kids-login.conf"
 OLD_OVERRIDE="$SDDM_DIR/99-omarchy-kids-login.conf"
 
+# Omarchy's login theme logs in only the last user and has no picker, so the
+# child could never choose their account. "omarchy-kids" is a copy of it
+# (same images) with a Left/Right user picker; see config/sddm/Main.qml.
+install_login_theme() {
+    case "$KIDS_LOGIN_THEME" in
+        omarchy-kids) ;;
+        *) return 0 ;;
+    esac
+    local src=/usr/share/sddm/themes/omarchy dst=/usr/share/sddm/themes/omarchy-kids
+    step "Installing SDDM theme omarchy-kids (user picker)"
+    if [ ! -d "$src" ] && [ "$DRY_RUN" -eq 0 ]; then
+        warn "$src not found; keeping the default login theme."
+        KIDS_LOGIN_THEME=omarchy
+        return 0
+    fi
+    as_root rm -rf "$dst"
+    as_root cp -a "$src" "$dst"
+    install_root_file config/sddm/Main.qml "$dst/Main.qml"
+}
+
 disable_autologin() {
     step "Disabling SDDM autologin"
     local f
@@ -29,8 +49,7 @@ disable_autologin() {
 
     [ -f "$OLD_OVERRIDE" ] && as_root rm -f "$OLD_OVERRIDE"
 
-    # Omarchy's own login theme only shows the last user (no picker), so the
-    # child could never choose their account. Use a theme with a user list.
+    install_login_theme
     local theme_conf=""
     if [ -n "$KIDS_LOGIN_THEME" ]; then
         theme_conf="[Theme]

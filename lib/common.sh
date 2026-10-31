@@ -122,7 +122,7 @@ load_config() {
     : "${KID_THEME:=tokyo-night}"
     : "${PARENT_USER:=${SUDO_USER:-$USER}}"
     : "${KIDS_HOSTNAME:=}"
-    : "${KIDS_LOGIN_THEME:=maya}"
+    : "${KIDS_LOGIN_THEME:=omarchy-kids}"
     : "${NEXTDNS_PROFILE_ID:=}"
     : "${LAN_CIDR:=}"
     : "${SSH_PASSWORDLESS:=auto}"
