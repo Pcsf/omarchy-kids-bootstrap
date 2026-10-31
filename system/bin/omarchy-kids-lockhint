@@ -46,9 +46,25 @@ is_locked() {
     return 1
 }
 
+# The child's graphical session: logind's Display session if set, otherwise
+# the user's wayland/x11 session, otherwise any session on a seat.
+session_id() {
+    local me sid type seat fallback=""
+    me="$(id -un)"
+    sid="$(loginctl show-user "$me" -p Display --value 2>/dev/null)"
+    if [ -n "$sid" ]; then printf '%s\n' "$sid"; return 0; fi
+    for sid in $(loginctl show-user "$me" -p Sessions --value 2>/dev/null); do
+        type="$(loginctl show-session "$sid" -p Type --value 2>/dev/null)"
+        seat="$(loginctl show-session "$sid" -p Seat --value 2>/dev/null)"
+        case "$type" in wayland|x11) printf '%s\n' "$sid"; return 0 ;; esac
+        [ -z "$fallback" ] && [ -n "$seat" ] && fallback="$sid"
+    done
+    [ -n "$fallback" ] && printf '%s\n' "$fallback"
+}
+
 session_path() {
     local sid
-    sid="$(loginctl show-user "$(id -un)" -p Display --value 2>/dev/null)"
+    sid="$(session_id)"
     [ -n "$sid" ] || return 1
     busctl call org.freedesktop.login1 /org/freedesktop/login1 \
         org.freedesktop.login1.Manager GetSession s "$sid" 2>/dev/null | awk '{gsub(/"/, "", $2); print $2}'
