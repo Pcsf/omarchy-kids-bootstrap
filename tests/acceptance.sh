@@ -22,8 +22,16 @@ if id -nG "$KID_USER" 2>/dev/null | tr ' ' '\n' | grep -qxE 'wheel|sudo|docker|a
 else
     pass "child is in no privileged group ($(id -nG "$KID_USER" 2>/dev/null))"
 fi
-if sudo -l -U "$KID_USER" 2>/dev/null | grep -qE '\(ALL|may run the following'; then
-    failed "sudo grants $KID_USER something: $(sudo -l -U "$KID_USER" | tail -3 | tr '\n' ' ')"
+# Rules that only deny (e.g. "(ALL) !/usr/bin/asdcontrol") grant nothing, so
+# drop negated commands before deciding whether any real grant is left.
+sudo_grants() {
+    sudo -l -U "$1" 2>/dev/null \
+        | grep -E '^[[:space:]]+\(' \
+        | sed -E 's/![^,[:space:]]+//g; s/\([^)]*\)//; s/(NOPASSWD|PASSWD|SETENV|NOEXEC)://g; s/[,[:space:]]+$//' \
+        | grep -E '[^[:space:],]'
+}
+if grants="$(sudo_grants "$KID_USER")"; then
+    failed "sudo grants $KID_USER something: $(printf '%s' "$grants" | tr '\n' ' ')"
 else
     pass "sudo grants $KID_USER nothing"
 fi
