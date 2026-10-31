@@ -46,7 +46,7 @@ if grep -hsE '^\s*User\s*=\s*\S' /etc/sddm.conf.d/*.conf 2>/dev/null | grep -q .
 else
     pass "no SDDM autologin user"
 fi
-check "login override installed" test -f /etc/sddm.conf.d/99-omarchy-kids-login.conf
+check "login override installed" test -f /etc/sddm.conf.d/zz-omarchy-kids-login.conf
 check "no getty autologin on tty1" bash -c '! grep -rqs -- --autologin /etc/systemd/system/getty@tty1.service.d'
 
 echo "== browser policy =="

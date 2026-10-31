@@ -15,6 +15,11 @@ KID_THEME="catppuccin"
 # Hostname to set (empty keeps the installer's choice).
 KIDS_HOSTNAME="kidpc"
 
+# SDDM login theme. Omarchy'"'"'s own theme shows only the last user, so the child
+# cannot pick their account; "maya" (ships with SDDM) lists all users.
+# Empty keeps Omarchy'"'"'s theme. Others: maldives, elarun (see /usr/share/sddm/themes).
+KIDS_LOGIN_THEME="maya"
+
 # NextDNS profile ID (the 6 hex characters shown in the NextDNS dashboard).
 # Empty skips the DNS module with instructions.
 NEXTDNS_PROFILE_ID=""
