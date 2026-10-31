@@ -1,6 +1,5 @@
 # AUR packages, built with Omarchy's yay. One per line; '#' starts a comment.
-# Code: Thonny, the beginner Python IDE (thonny 5.x, depends on mypy/basedpyright).
-thonny
+# Thonny is installed with uv by modules/25-packages.sh (the AUR build is broken).
 # Screen time: installed by the screen-time module, listed here so the
 # packages module keeps it in step with everything else.
 timekpr-next

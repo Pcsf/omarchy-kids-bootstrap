@@ -64,7 +64,7 @@ bootstrap.sh            orchestrator (--only, --skip, --dry-run)
 lib/common.sh           helpers: run/as_root/as_kid_script, config loading, list parsing
 config/
   kids.conf.example     the settings template; copy to kids.conf (git-ignored, machine-local)
-  packages.txt          official-repo apps        aur-packages.txt   AUR apps (thonny, timekpr-next)
+  packages.txt          official-repo apps        aur-packages.txt   AUR apps (timekpr-next)
   webapps.txt           child's web-app launchers allowed-sites.txt  browser allowlist
   hidden-apps.txt       launcher ids hidden       blocked-commands.txt  executables ACL-denied to the child
   backup-paths.txt      what restic backs up
@@ -121,7 +121,7 @@ link into it.
   ufw, snapper + limine-snapper-sync). Plain Arch works with warnings.
 - From Omarchy itself: =omarchy-pkg-add=, =omarchy-pkg-aur-add= (yay),
   =omarchy-webapp-install=, =omarchy-theme-set=, =jq=, =curl=.
-- Installed by the modules: =timekpr-next= 0.5.11 (AUR), =thonny= (AUR),
+- Installed by the modules: =timekpr-next= 0.5.11 (AUR), =thonny= (PyPI via uv, system-wide),
   =restic=, =openssh=, and the apps in =config/packages.txt= (all in [extra]
   on 2026-10-25; =minecraft-launcher= is in the [omarchy] repo).
 - Accounts and services the parent creates: a NextDNS profile, a backup
