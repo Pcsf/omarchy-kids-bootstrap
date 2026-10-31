@@ -91,8 +91,8 @@ configure_user() {
     step "Limits for $KID_USER"
     if [ "$DRY_RUN" -eq 0 ]; then
         # The daemon registers on the system bus a moment after it starts.
-        local i
-        for i in 1 2 3 4 5; do
+        local _
+        for _ in 1 2 3 4 5; do
             sudo timekpra --getuserlist >/dev/null 2>&1 && break
             sleep 1
         done
