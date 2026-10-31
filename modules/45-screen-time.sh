@@ -61,6 +61,12 @@ RestartSec=5
 WantedBy=graphical-session.target
 UNIT
     as_root systemctl --global enable omarchy-kids-lockhint.service
+    # Apply an updated helper to a running child session right away.
+    if [ "$DRY_RUN" -eq 0 ] && sudo systemctl --user -M "$KID_USER@" is-active --quiet omarchy-kids-lockhint.service 2>/dev/null; then
+        sudo systemctl --user -M "$KID_USER@" daemon-reload || true
+        sudo systemctl --user -M "$KID_USER@" restart omarchy-kids-lockhint.service || true
+        note "restarted the helper in $KID_USER's running session"
+    fi
 }
 
 tka() { as_root timekpra "$@"; }
