@@ -11,7 +11,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/common.sh"
 
 SDDM_DIR=/etc/sddm.conf.d
-OVERRIDE="$SDDM_DIR/99-omarchy-kids-login.conf"
+# Sorts after Omarchy's own 99-omarchy-login.conf, so it wins (last file wins).
+OVERRIDE="$SDDM_DIR/zz-omarchy-kids-login.conf"
+OLD_OVERRIDE="$SDDM_DIR/99-omarchy-kids-login.conf"
 
 disable_autologin() {
     step "Disabling SDDM autologin"
@@ -25,6 +27,16 @@ disable_autologin() {
         fi
     done
 
+    [ -f "$OLD_OVERRIDE" ] && as_root rm -f "$OLD_OVERRIDE"
+
+    # Omarchy's own login theme only shows the last user (no picker), so the
+    # child could never choose their account. Use a theme with a user list.
+    local theme_conf=""
+    if [ -n "$KIDS_LOGIN_THEME" ]; then
+        theme_conf="[Theme]
+Current=$KIDS_LOGIN_THEME
+"
+    fi
     install_root_stdin "$OVERRIDE" <<CONF
 # Installed by omarchy-kids-bootstrap (login module).
 # A shared family machine always asks who is logging in.
@@ -34,6 +46,8 @@ Session=
 
 [Users]
 RememberLastUser=true
+
+$theme_conf
 CONF
 
     # getty on tty1 could also auto-login; Omarchy does not ship that, so a
