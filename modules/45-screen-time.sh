@@ -93,12 +93,17 @@ configure_user() {
 
     if [ "$PLAYTIME_ENABLED" = "1" ]; then
         step "PlayTime quota for games"
-        tka --setplaytimeenabled "$KID_USER" true
         tka --setplaytimealloweddays "$KID_USER" "1;2;3;4;5;6;7"
         tka --setplaytimelimits "$KID_USER" "$PLAYTIME_LIMITS"
         tka --setplaytimeactivities "$KID_USER" "$PLAYTIME_ACTIVITIES"
         # PlayTime counts inside the daily total, not on top of it.
         tka --setplaytimelimitoverride "$KID_USER" false
+        # Enable last: setting the override after the enable flag left
+        # PLAYTIME_ENABLED at False on timekpr-next 0.5.x.
+        tka --setplaytimeenabled "$KID_USER" true
+        if [ "$DRY_RUN" -eq 0 ] && ! sudo timekpra --getuserinfo "$KID_USER" | grep -qx 'PLAYTIME_ENABLED: True'; then
+            warn "Timekpr did not keep PLAYTIME_ENABLED=True; check: sudo timekpra --getuserinfo $KID_USER"
+        fi
     else
         tka --setplaytimeenabled "$KID_USER" false
     fi
