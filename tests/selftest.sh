@@ -11,13 +11,13 @@ ok()   { printf 'PASS  %s\n' "$*"; }
 bad()  { printf 'FAIL  %s\n' "$*"; fail=1; }
 
 # 1. Every script parses.
-for f in bootstrap.sh lib/common.sh modules/*.sh child/*.sh system/sbin/* tests/*.sh; do
+for f in bootstrap.sh lib/common.sh modules/*.sh child/*.sh system/sbin/* system/bin/* tests/*.sh; do
     bash -n "$f" && ok "syntax $f" || bad "syntax $f"
 done
 
 # 2. shellcheck, when installed.
 if command -v shellcheck >/dev/null; then
-    if shellcheck -x -S warning bootstrap.sh lib/common.sh modules/*.sh child/*.sh system/sbin/* tests/*.sh; then
+    if shellcheck -x -S warning bootstrap.sh lib/common.sh modules/*.sh child/*.sh system/sbin/* system/bin/* tests/*.sh; then
         ok "shellcheck clean"
     else
         bad "shellcheck reported warnings"

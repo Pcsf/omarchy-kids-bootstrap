@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# omarchy-kids-lockhint -- tell logind when the child's screen is locked, so
+# Timekpr stops counting screen time while hyprlock is up.
+#
+# GNOME and KDE set the session's IdleHint/LockedHint when they lock; Hyprland
+# and hyprlock do not, so Timekpr saw a locked screen as an active session.
+# This runs as a systemd user service in the child's graphical session, watches
+# for the real /usr/bin/hyprlock (not a copy renamed to look like it) and sets
+# both hints on the child's display session. Timekpr is configured with
+# --settrackinactive false, so an idle/locked session is not counted.
+set -u
+
+LOCKER=/usr/bin/hyprlock
+INTERVAL="${OMARCHY_KIDS_LOCKHINT_INTERVAL:-5}"
+
+is_locked() {
+    local pid
+    for pid in $(pgrep -u "$(id -u)" -x hyprlock 2>/dev/null); do
+        [ "$(readlink "/proc/$pid/exe" 2>/dev/null)" = "$LOCKER" ] && return 0
+    done
+    return 1
+}
+
+session_path() {
+    local sid
+    sid="$(loginctl show-user "$(id -un)" -p Display --value 2>/dev/null)"
+    [ -n "$sid" ] || return 1
+    busctl call org.freedesktop.login1 /org/freedesktop/login1 \
+        org.freedesktop.login1.Manager GetSession s "$sid" 2>/dev/null | awk '{gsub(/"/, "", $2); print $2}'
+}
+
+set_hints() {
+    local path="$1" value="$2"
+    busctl call org.freedesktop.login1 "$path" org.freedesktop.login1.Session SetIdleHint b "$value" &&
+        busctl call org.freedesktop.login1 "$path" org.freedesktop.login1.Session SetLockedHint b "$value"
+}
+
+state=""
+while :; do
+    if is_locked; then want=true; else want=false; fi
+    if [ "$want" != "$state" ]; then
+        if path="$(session_path)" && [ -n "$path" ] && set_hints "$path" "$want"; then
+            state="$want"
+        fi
+    fi
+    sleep "$INTERVAL"
+done
