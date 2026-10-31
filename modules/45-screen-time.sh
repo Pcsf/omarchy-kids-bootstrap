@@ -38,6 +38,31 @@ count_tty_sessions() {
     as_root systemctl restart timekpr.service
 }
 
+# Hyprland's lock screen does not tell logind the session is locked, so
+# Timekpr kept counting. A user service in the child's session sets the
+# session's IdleHint/LockedHint while hyprlock runs.
+install_lockhint() {
+    step "Pausing screen time while the child's screen is locked"
+    install_root_file system/bin/omarchy-kids-lockhint /usr/local/bin/omarchy-kids-lockhint 755
+    install_root_stdin /etc/systemd/user/omarchy-kids-lockhint.service <<UNIT
+# Installed by omarchy-kids-bootstrap (screen-time module).
+[Unit]
+Description=Tell logind when the screen is locked (Timekpr pauses)
+ConditionUser=$KID_USER
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/local/bin/omarchy-kids-lockhint
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target
+UNIT
+    as_root systemctl --global enable omarchy-kids-lockhint.service
+}
+
 tka() { as_root timekpra "$@"; }
 
 configure_user() {
@@ -83,6 +108,7 @@ module_main() {
     install_timekpr
     count_tty_sessions
     configure_user
+    install_lockhint
     note "Parent tools: 'sudo timekpra --settimeleft $KID_USER + 30m' adds time today;"
     note "'sudo timekpra --getuserinfort $KID_USER' shows today's usage. GUI: timekpr-admin."
 }
