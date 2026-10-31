@@ -55,5 +55,14 @@ for marker in finalize-user voxtype-install-invitation agent-setup-invitation fi
     touch "$state_dir/done/$marker"
 done
 
+echo "    silencing mise (blocked for this account, but Omarchy's shell init calls it)"
+# Omarchy's bash init runs 'eval "$(mise activate bash)"' when mise exists. The
+# lockdown denies execution, so every login printed "Permission denied". A
+# no-op shell function defined before Omarchy's rc makes that line harmless.
+if ! grep -q 'omarchy-kids: mise stub' ~/.bashrc 2>/dev/null; then
+    { printf '%s\n' '# omarchy-kids: mise stub (mise is blocked for this account)' 'mise() { :; }' ''; cat ~/.bashrc 2>/dev/null; } >~/.bashrc.new
+    mv ~/.bashrc.new ~/.bashrc
+fi
+
 update-desktop-database ~/.local/share/applications 2>/dev/null || true
 echo "    child provisioning done"
