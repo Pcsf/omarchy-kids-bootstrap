@@ -89,6 +89,7 @@ else
     failed "timekpr has no configuration for $KID_USER"
 fi
 check "child cannot stop timekpr" bash -c "! sudo -u $KID_USER systemctl stop timekpr.service"
+check "PlayTime enabled globally" grep -qE "^TIMEKPR_PLAYTIME_ENABLED = True" /etc/timekpr/timekpr.conf
 check "lock-screen hint service enabled for the child" test -L /etc/systemd/user/graphical-session.target.wants/omarchy-kids-lockhint.service
 check "child cannot run timekpra" bash -c "! sudo -u $KID_USER timekpra --getuserlist"
 
