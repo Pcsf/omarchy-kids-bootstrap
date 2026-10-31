@@ -123,6 +123,7 @@ load_config() {
     : "${PARENT_USER:=${SUDO_USER:-$USER}}"
     : "${KIDS_HOSTNAME:=}"
     : "${KIDS_LOGIN_THEME:=omarchy-kids}"
+    : "${TPM_UNLOCK:=auto}"
     : "${NEXTDNS_PROFILE_ID:=}"
     : "${LAN_CIDR:=}"
     : "${SSH_PASSWORDLESS:=auto}"

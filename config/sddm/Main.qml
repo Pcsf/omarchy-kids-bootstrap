@@ -64,9 +64,9 @@ Rectangle {
 
     Text {
       anchors.horizontalCenter: parent.horizontalCenter
-      text: (root.userCount > 1 ? "◀  " : "")
+      text: (root.userCount > 1 ? "\u25C0  " : "")
             + (root.currentRealName !== "" ? root.currentRealName : root.currentUser)
-            + (root.userCount > 1 ? "  ▶" : "")
+            + (root.userCount > 1 ? "  \u25B6" : "")
       color: "#c0caf5"
       font.family: "JetBrainsMono Nerd Font"
       font.pixelSize: 28
@@ -121,7 +121,7 @@ Rectangle {
           font.family: "JetBrainsMono Nerd Font"
           font.pixelSize: 24
           font.letterSpacing: 5
-          passwordCharacter: "•"
+          passwordCharacter: "\u2022"
           color: "transparent"
           selectionColor: "transparent"
           selectedTextColor: "transparent"

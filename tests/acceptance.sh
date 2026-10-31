@@ -117,6 +117,19 @@ else
     echo "SKIP  backup (RESTIC_REPO empty)"
 fi
 
+echo "== disk unlock =="
+if [ "${TPM_UNLOCK:-auto}" = "no" ]; then
+    echo "SKIP  tpm unlock disabled (TPM_UNLOCK=no)"
+else
+    luks_dev="$(lsblk -nrpo NAME,TYPE,PKNAME 2>/dev/null | awk '$2=="crypt" && $3!="" {print $3; exit}')"
+    if [ -n "$luks_dev" ] && [ -e /dev/tpmrm0 ]; then
+        check "TPM2 keyslot bound to $luks_dev" bash -c "sudo clevis luks list -d $luks_dev 2>/dev/null | grep -q tpm2"
+        check "clevis hook in mkinitcpio HOOKS" bash -c "grep -rqsE '^HOOKS=.*[ (]clevis[ )]' /etc/mkinitcpio.conf /etc/mkinitcpio.conf.d"
+    else
+        echo "SKIP  no LUKS device or TPM"
+    fi
+fi
+
 echo "== ssh =="
 if systemctl is-active sshd >/dev/null 2>&1; then
     eff="$(sudo sshd -T 2>/dev/null)"

@@ -21,6 +21,12 @@ KIDS_HOSTNAME="kidpc"
 # stock themes, maya/maldives/elarun, do not load with the Qt6 greeter.)
 KIDS_LOGIN_THEME="omarchy-kids"
 
+# Unlock the encrypted disk with the TPM so the machine boots straight to the
+# login screen (the disk passphrase stays valid as a fallback). auto/yes: set
+# it up when a TPM and LUKS are found; no: keep the passphrase prompt at boot.
+# Anyone who can power the machine then reaches the login screen.
+TPM_UNLOCK="auto"
+
 # NextDNS profile ID (the 6 hex characters shown in the NextDNS dashboard).
 # Empty skips the DNS module with instructions.
 NEXTDNS_PROFILE_ID=""
