@@ -159,4 +159,5 @@ Thonny moved from the AUR (its build pinned an old =uv_build=) to =uv=;
 Omarchy's login theme has no user picker, so the login module ships one
 (SDDM's stock themes do not load with the Qt6 greeter); Omarchy 4 locks the
 screen inside its quickshell shell, not hyprlock; PlayTime needs Timekpr's
-global switch; the TPM unlock was added. shellcheck has still not been run.
+global switch; the TPM unlock was added. Self-test, including shellcheck,
+passes on the target machine.
