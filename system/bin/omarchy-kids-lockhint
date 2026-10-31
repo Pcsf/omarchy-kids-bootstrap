@@ -3,18 +3,37 @@
 # Timekpr stops counting screen time while hyprlock is up.
 #
 # GNOME and KDE set the session's IdleHint/LockedHint when they lock; Hyprland
-# and hyprlock do not, so Timekpr saw a locked screen as an active session.
-# This runs as a systemd user service in the child's graphical session, watches
-# for the real /usr/bin/hyprlock (not a copy renamed to look like it) and sets
-# both hints on the child's display session. Timekpr is configured with
-# --settrackinactive false, so an idle/locked session is not counted.
+# does not, so Timekpr saw a locked screen as an active session. This runs as
+# a systemd user service in the child's graphical session, asks the compositor
+# whether the session is locked and sets both hints on the child's display
+# session. Timekpr is configured with --settrackinactive false, so an
+# idle/locked session is not counted.
+#
+# Omarchy 4 draws its lock screen inside its quickshell shell (no hyprlock
+# process); omarchy-hyprland-session-locked reads the lock state from
+# Hyprland itself (exit 0 = locked). The compositor's answer cannot be faked
+# by a renamed process. A real /usr/bin/hyprlock also counts, for setups
+# that still use it.
 set -u
 
 LOCKER=/usr/bin/hyprlock
 INTERVAL="${OMARCHY_KIDS_LOCKHINT_INTERVAL:-5}"
 
+# The service may start before uwsm exports the Hyprland instance; find it.
+hypr_env() {
+    local dir sig
+    [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && [ -d "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr/$HYPRLAND_INSTANCE_SIGNATURE" ] && return 0
+    dir="$(ls -1dt "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"/hypr/*/ 2>/dev/null | head -1)"
+    [ -n "$dir" ] || return 1
+    sig="$(basename "$dir")"
+    export HYPRLAND_INSTANCE_SIGNATURE="$sig"
+}
+
 is_locked() {
     local pid
+    if command -v omarchy-hyprland-session-locked >/dev/null 2>&1 && hypr_env; then
+        omarchy-hyprland-session-locked >/dev/null 2>&1 && return 0
+    fi
     for pid in $(pgrep -u "$(id -u)" -x hyprlock 2>/dev/null); do
         [ "$(readlink "/proc/$pid/exe" 2>/dev/null)" = "$LOCKER" ] && return 0
     done
