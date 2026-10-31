@@ -9,24 +9,24 @@ machine after the normal Omarchy install.
 
 * What it does
 
-Thirteen modules, in this order (=./bootstrap.sh --help= lists them):
+Fourteen modules, in this order (=./bootstrap.sh --help= lists them):
 
-| module         | what it changes                                                                                                   |
-|----------------+-------------------------------------------------------------------------------------------------------------------|
-| preflight      | Reports Omarchy version, accounts, LUKS/btrfs/snapper, login manager, network stack. Changes nothing.             |
-| login          | Disables the SDDM autologin Omarchy's installer set up; installs an override that keeps it off; sets the hostname. |
-| tpm-unlock     | Binds the TPM to the LUKS disk (Clevis) so boot needs no disk passphrase; the passphrase stays as fallback. =TPM_UNLOCK=no= skips it. |
-| child-account  | Creates the child (no wheel), sets its password, =chmod 700= on the parent's home, provisions the Omarchy desktop. |
-| packages       | Installs the learning/creative/play apps (=config/packages.txt=, =config/aur-packages.txt=).                      |
-| webapps        | Installs Omarchy web-app launchers in the child's account (Scratch, Tinkercad, ...; =config/webapps.txt=).        |
-| browser-policy | Renders a mandatory Chromium policy from =config/allowed-sites.txt=: everything blocked except the allowlist.      |
-| dns            | DNS-over-TLS to a NextDNS profile via systemd-resolved; NetworkManager ignores DHCP DNS; ufw blocks other DNS.    |
-| screen-time    | Timekpr-nExT: daily quota, allowed hours, PlayTime quota for games, tty sessions counted. Survives reboot.         |
-| desktop        | Child's Hyprland: learning shortcuts instead of Omarchy's app bindings, developer launchers hidden, quieter bar.   |
-| lockdown       | File ACLs deny the child other browsers and network tools; a pacman hook re-applies them; =su= limited to wheel.  |
-| backup         | Daily restic backup of the child's work to an external disk or NAS, as a system timer.                            |
-| ssh-admin      | sshd for the parent only, from the LAN subnet, passwords off once a key is authorized.                            |
-| snapshot       | A labelled snapper snapshot of the system (bootable from the Limine menu).                                        |
+| module         | what it changes                                                                                                      |
+|----------------+----------------------------------------------------------------------------------------------------------------------|
+| preflight      | Reports Omarchy version, accounts, LUKS/btrfs/snapper, login manager, network stack. Changes nothing.                |
+| login          | Disables SDDM autologin; installs the =omarchy-kids= login theme (Omarchy's, plus a user picker); sets the hostname. |
+| tpm-unlock     | Binds the TPM to the LUKS disk (Clevis) so boot needs no disk passphrase; the passphrase stays as fallback.          |
+| child-account  | Creates the child (no wheel), sets its password, =chmod 700= on the parent's home, provisions the Omarchy desktop.   |
+| packages       | Installs the learning/creative/play apps (=config/packages.txt=, =config/aur-packages.txt=) and Thonny via =uv=.     |
+| webapps        | Installs Omarchy web-app launchers in the child's account (Scratch, Tinkercad, ...; =config/webapps.txt=).           |
+| browser-policy | Renders a mandatory Chromium policy from =config/allowed-sites.txt=: everything blocked except the allowlist.        |
+| dns            | DNS-over-TLS to a NextDNS profile via systemd-resolved; NetworkManager ignores DHCP DNS; ufw blocks other DNS.       |
+| screen-time    | Timekpr-nExT: daily quota, allowed hours, PlayTime for games, tty counted, paused while the screen is locked.        |
+| desktop        | Child's Hyprland: learning shortcuts instead of Omarchy's app bindings, developer launchers hidden, quieter bar.     |
+| lockdown       | File ACLs deny the child other browsers and network tools; a pacman hook re-applies them; =su= limited to wheel.     |
+| backup         | Daily restic backup of the child's work to an external disk or NAS, as a system timer.                               |
+| ssh-admin      | sshd for the parent only, from the LAN subnet; passwords turn off once a key is authorized.                          |
+| snapshot       | A labelled snapper snapshot of the system (bootable from the Limine menu).                                           |
 
 Two modules print instructions instead of acting until their input exists:
 *dns* needs =NEXTDNS_PROFILE_ID=, *backup* needs =RESTIC_REPO= and a password
@@ -69,11 +69,12 @@ config/
   webapps.txt           child's web-app launchers allowed-sites.txt  browser allowlist
   hidden-apps.txt       launcher ids hidden       blocked-commands.txt  executables ACL-denied to the child
   backup-paths.txt      what restic backs up
+  sddm/Main.qml         the omarchy-kids login screen (Omarchy's theme plus a user picker)
 modules/NN-*.sh         one concern each, run as the parent, sudo per privileged step
 child/*.sh              scripts that run AS THE CHILD (fed on stdin: the repo is in the parent's 700 home)
 home/.config/hypr/      the child's hyprland.lua and bindings.lua (copied, not linked)
 system/                 files installed root-owned: Chromium base policy, ACL helper + pacman hook,
-                        restic job + unit
+                        restic job + unit, lock-screen helper for Timekpr (bin/omarchy-kids-lockhint)
 tests/
   selftest.sh           repo self-test, no root: syntax, config, policy rendering, planted negatives
   acceptance.sh         security acceptance, run as the parent after bootstrap
@@ -109,11 +110,18 @@ link into it.
 - *DNS has a device layer and should have a router layer.* The device layer
   (DoT to NextDNS, plain DNS refused by ufw) protects this install. A router
   or NextDNS per-device policy protects the child when this layer is bypassed.
+- *The disk unlocks with the TPM, the accounts do not.* Omarchy encrypts the
+  disk and asks for the passphrase at every boot; the tpm-unlock module lets
+  the TPM answer instead (no PCR binding: Secure Boot is off on these
+  machines), so power-on goes straight to the login screen. The passphrase
+  stays valid as the fallback. =TPM_UNLOCK=no= keeps the prompt.
 - *Screen time is a system quota first.* Timekpr's daily limit and allowed
   hours are enforced by the daemon through logind, persist in
   =/var/lib/timekpr= across reboots, and count tty sessions (off by default
   upstream). PlayTime is the per-game quota inside that total; it is
-  process-name based and therefore the weaker of the two.
+  process-name based and therefore the weaker of the two. Hyprland's lock
+  screen does not tell logind it is locked, so a small user service sets the
+  session's idle/locked hints while it is up and Timekpr stops counting.
 
 * Dependencies
 
@@ -122,11 +130,16 @@ link into it.
   ufw, snapper + limine-snapper-sync). Plain Arch works with warnings.
 - From Omarchy itself: =omarchy-pkg-add=, =omarchy-pkg-aur-add= (yay),
   =omarchy-webapp-install=, =omarchy-theme-set=, =jq=, =curl=.
-- Installed by the modules: =timekpr-next= 0.5.11 (AUR), =thonny= (PyPI via uv, system-wide),
-  =restic=, =openssh=, and the apps in =config/packages.txt= (all in [extra]
-  on 2026-10-25; =minecraft-launcher= is in the [omarchy] repo).
+- Installed by the modules: =timekpr-next= 0.5.11 and =mkinitcpio-clevis-hook=
+  (AUR), =clevis= and =tpm2-tools=, =uv= and =thonny= (PyPI, system-wide in
+  =/opt/thonny=), =restic=, =openssh=, and the apps in =config/packages.txt=
+  (all in [extra] on 2026-10-25; =minecraft-launcher= is in the [omarchy]
+  repo).
+- Firmware: UEFI, Secure Boot off (the Omarchy ISO does not boot with it),
+  fTPM on for the tpm-unlock module.
 - Accounts and services the parent creates: a NextDNS profile, a backup
-  destination (external disk or NAS mount), an SSH key on the parent's laptop.
+  destination (external disk or NAS mount), optionally an SSH key on the
+  parent's laptop (password logins stay on without one).
 - Paid and optional: Minecraft Java needs a Microsoft account; the launcher
   lines in =config/packages.txt= are commented out.
 
@@ -139,6 +152,11 @@ and =tests/child-checks.sh= are the security acceptance of the plan and need
 the real machine.
 
 Verified on 2026-10-25 on an Omarchy 4.0.6 development machine: self-test
-passes and =./bootstrap.sh --dry-run= completes for every module. A live run
-on the target machine (Beelink SER5 MAX) is still to be done; shellcheck was
-not available on the machine where the scripts were written.
+passes and =./bootstrap.sh --dry-run= completes for every module.
+
+First live run on the target Beelink (AMD) on 2026-10-31. What it changed:
+Thonny moved from the AUR (its build pinned an old =uv_build=) to =uv=;
+Omarchy's login theme has no user picker, so the login module ships one
+(SDDM's stock themes do not load with the Qt6 greeter); Omarchy 4 locks the
+screen inside its quickshell shell, not hyprlock; PlayTime needs Timekpr's
+global switch; the TPM unlock was added. shellcheck has still not been run.

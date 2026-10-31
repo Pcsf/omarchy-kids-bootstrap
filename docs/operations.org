@@ -8,6 +8,7 @@ Everything here runs as the parent, on the machine or over SSH.
 | need                                   | command                                                          |
 |----------------------------------------+------------------------------------------------------------------|
 | today's usage and time left            | =sudo timekpra --getuserinfort kid=                              |
+| game (PlayTime) minutes left           | =ACTUAL_PLAYTIME_LEFT_DAY= in =sudo timekpra --getuserinfort kid= (=--getuserinfo= always shows =PLAYTIME_ENABLED: False=; ignore it) |
 | give 30 more minutes today             | =sudo timekpra --settimeleft kid + 30m=                          |
 | take 30 minutes away today             | =sudo timekpra --settimeleft kid - 30m=                          |
 | change the standing limits             | edit =config/kids.conf=, =./bootstrap.sh --only screen-time=     |
@@ -62,19 +63,25 @@ manager), run =./bootstrap.sh=, then restore =/home/kid= from the backup.
 
 - *Accounts.* Child in no privileged group, =sudo -l -U kid= empty, parent
   home 700. A failure here blocks everything else.
-- *Login.* No SDDM =*.conf= names an autologin user; the override file exists.
+- *Login.* No SDDM =*.conf= names an autologin user;
+  =/etc/sddm.conf.d/zz-omarchy-kids-login.conf= exists (it must sort after
+  Omarchy's =99-omarchy-login.conf=, which also sets the theme).
+- *Disk unlock.* A TPM2 Clevis keyslot is bound to the LUKS device and the
+  =clevis= hook is in the mkinitcpio HOOKS (skipped with =TPM_UNLOCK=no=).
 - *Browser policy.* =omarchy-kids.json= root-owned 644, =URLBlocklist= is
   =*=, allowlist non-empty, child cannot write it. In the child's Chromium
   =chrome://policy= must show these as mandatory.
 - *DNS.* resolved reports =+DNSOverTLS=; https://test.nextdns.io reports the
   configured profile; a TCP connect to 1.1.1.1:53 fails.
-- *Screen time.* =timekpr.service= active; tty counted; the child has a
+- *Screen time.* =timekpr.service= active; tty counted; PlayTime on
+  globally; the lock-screen helper is enabled for the child; the child has a
   configuration; the child can neither stop the service nor run =timekpra=.
 - *Lockdown.* Every present blocked command carries =user:kid:---=; the
   pacman hook exists; =pam_wheel= active for =su=.
 - *Backup.* Timer enabled; password file root 600; repository answers.
 - *SSH.* Effective config (=sshd -T=) has AllowUsers parent, no root, no
-  passwords once a key exists.
+  passwords once a key exists. Without a key, password logins are a NOTE,
+  not a FAIL.
 
 Tests from the child's side (=child-checks.sh=) must be run inside the
 child's own session: they prove the same things with the child's identity.
@@ -93,6 +100,12 @@ child's own session: they prove the same things with the child's identity.
   child; clicking it fails (no sudo). Harmless.
 - Removing the =omarchy.tray= widget from the bar would hide Timekpr's
   countdown icon; the desktop module keeps it.
+- With TPM unlock, anyone who can power the machine reaches the login
+  screen; the accounts' passwords are the protection. Secure Boot is off, so
+  the TPM releases the key to whatever boots.
+- The lock-screen pause works by setting the session's idle hint, which the
+  child could also set by hand (=busctl=) to pause the quota. Timekpr reads
+  the same hint for every desktop; review =getuserinfort= now and then.
 - A tty login counts as screen time, but the child can still open a tty and
   use the shell within the quota. That is intended: the account is
   unprivileged, and a shell is part of learning.
@@ -104,6 +117,18 @@ child's own session: they prove the same things with the child's identity.
   reload. =chrome://policy/logs= in the child's browser lists blocked URLs.
 - *Web app opens blank.* Same cause; the launcher's URL host must be
   allowlisted (the webapps module warns about it).
+- *The login screen is black after an update.* Log in on =Ctrl+Alt+F3= as
+  the parent, set =KIDS_LOGIN_THEME="omarchy"= in =config/kids.conf=, re-run
+  =--only login=, reboot. The stock Omarchy theme only logs in the last user.
+- *The disk passphrase is asked again at boot.* Normal after a BIOS update or
+  a cleared TPM, or if an Omarchy update rewrote
+  =/etc/mkinitcpio.conf.d/omarchy_hooks.conf=. Type the passphrase, then
+  =./bootstrap.sh --only tpm-unlock=. To undo TPM unlock: =sudo clevis luks
+  list -d <luks-device>=, =sudo clevis luks unbind -d <luks-device> -s <slot>=,
+  remove =clevis= from HOOKS, =sudo mkinitcpio -P=.
+- *Time keeps counting on the lock screen.* With the child locked:
+  =loginctl show-session $(loginctl show-user kid -p Display --value) -p IdleHint -p LockedHint=
+  must say =yes= twice. If not, =sudo systemctl --user -M kid@ status omarchy-kids-lockhint=.
 - *Timekpr says "no user config".* The daemon was not up when the module ran;
   =./bootstrap.sh --only screen-time= again.
 - *Timekpr ends the session but the screen stays black.* Known upstream

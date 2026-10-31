@@ -4,8 +4,11 @@
 #
 # Timekpr counts x11/wayland/mir sessions and EXCLUDES tty by default, which
 # would make Ctrl+Alt+F3 a free terminal. The server config is changed to
-# count tty sessions too. The quota state lives in /var/lib/timekpr and
-# survives logout, relogin and reboot.
+# count tty sessions too. PlayTime is switched on globally (per-user PlayTime
+# is ignored otherwise), and a user service pauses the quota while the
+# child's screen is locked (Hyprland does not report the lock to logind).
+# The quota state lives in /var/lib/timekpr and survives logout, relogin and
+# reboot.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "$SCRIPT_DIR/../lib/common.sh"
