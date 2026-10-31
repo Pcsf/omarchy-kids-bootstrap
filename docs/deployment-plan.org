@@ -27,14 +27,17 @@ What changed, and why:
   this reason.
 - *Autologin is one file.* =/etc/sddm.conf.d/autologin.conf= written by the
   ISO; nothing in the installed system rewrites it. The login module renames
-  it and installs an override with an empty user.
+  it and installs an override with an empty user. (Live run: Omarchy's SDDM
+  theme only logs in the last user, so the module also installs a copy with
+  a user picker.)
 - *Snapshots exist.* btrfs root under LUKS, snapper =root= config,
   =limine-snapper-sync=, and =omarchy-snapshot create/restore=. Snapshots do
   not cover =/home=, as the draft said.
 - *Packages.* gcompris-qt, krita, inkscape, stellarium, luanti,
   python-pygame, kturtle, prismlauncher, restic are in [extra];
-  minecraft-launcher is in the [omarchy] repo; thonny 5.0 and timekpr-next
-  0.5.11 are in the AUR. No official Scratch desktop package: the Scratch
+  minecraft-launcher is in the [omarchy] repo; timekpr-next 0.5.11 is in the
+  AUR; thonny is installed from PyPI with =uv= (its AUR build broke on a
+  pinned =uv_build=). No official Scratch desktop package: the Scratch
   editor is a web app (an AUR =scratch3= builds it from source for offline
   use).
 - *Timekpr-nExT fits.* It tracks sessions through systemd-logind, which is
@@ -126,18 +129,21 @@ are the acceptance tests unless stated.
 
 ** Phase 1: base system (manual)
 
-Install Omarchy on the NVMe with LUKS (the installer offers it), create the
-parent account, update, reboot. Set UEFI admin password; disable external
+In the firmware: UEFI mode, Secure Boot off (the ISO does not boot with
+it), fTPM on. Install Omarchy on the NVMe with LUKS (the installer offers
+it), create the parent account, update, reboot. Set UEFI admin password; disable external
 boot after installation. Verify =hyprctl monitors= shows 1920x1080 at 100 Hz,
 scale 1. Then clone this repo as the parent and run =./bootstrap.sh
 --dry-run=.
 
-Exit: Omarchy boots, graphics/audio/network work, LUKS prompt at boot,
-preflight reports LUKS + snapper present.
+Exit: Omarchy boots, graphics/audio/network work, LUKS prompt at boot (the
+tpm-unlock module removes it in phase 2), preflight reports LUKS + snapper
+present.
 
-** Phase 2: accounts and login (modules: login, child-account)
+** Phase 2: accounts and login (modules: login, tpm-unlock, child-account)
 
-Automated: autologin off, hostname, child created without wheel, password
+Automated: autologin off, login screen with a user picker, TPM disk unlock
+(asks for the disk passphrase once), hostname, child created without wheel, password
 prompt, parent home 700, project directories, Omarchy desktop provisioned
 for the child (theme, keyring, user dirs, default browser), Omarchy's
 finalization and migrations marked done.
@@ -168,7 +174,8 @@ reports the profile.
 ** Phase 4: screen time (module: screen-time)
 
 Automated: Timekpr installed and enabled, tty counted, daily limits, allowed
-hours, lockout type, PlayTime for games.
+hours, lockout type, PlayTime for games (switched on globally in
+=timekpr.conf=), screen time paused while the child's screen is locked.
 
 Manual test, from the child's account: set a 5-minute limit for the test
 (=sudo timekpra --settimeleft kid - ...= or a temporary =TIME_LIMITS=),
@@ -194,8 +201,8 @@ uncomment a launcher if wanted.
 
 Manual first: mount the backup disk or NAS share, create the restic password
 file (the module prints the exact commands), save the password in the family
-password manager, copy the parent's SSH public key to the machine
-(=ssh-copy-id=).
+password manager, optionally copy the parent's SSH public key to the
+machine (=ssh-copy-id=).
 
 Automated: restic repository, daily timer, first backup; sshd for the parent
 from the LAN with passwords off once the key exists; labelled snapshot.

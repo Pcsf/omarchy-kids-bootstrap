@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# modules/15-login.sh -- require a password at the login screen; set the hostname.
+# modules/15-login.sh -- a login screen where each person picks their
+# account and types their password; set the hostname.
 #
 # Omarchy's installer writes /etc/sddm.conf.d/autologin.conf for the owner.
 # On a shared machine the login screen must ask who is sitting down, so the
 # file is renamed (SDDM reads only *.conf) and an override with an empty
 # Autologin user is installed on top, in case a future Omarchy step writes
-# the autologin file again.
+# the autologin file again. The override also selects the omarchy-kids
+# theme (KIDS_LOGIN_THEME), because Omarchy's own theme can only log in the
+# last user.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "$SCRIPT_DIR/../lib/common.sh"
@@ -13,7 +16,6 @@ source "$SCRIPT_DIR/../lib/common.sh"
 SDDM_DIR=/etc/sddm.conf.d
 # Sorts after Omarchy's own 99-omarchy-login.conf, so it wins (last file wins).
 OVERRIDE="$SDDM_DIR/zz-omarchy-kids-login.conf"
-OLD_OVERRIDE="$SDDM_DIR/99-omarchy-kids-login.conf"
 
 # Omarchy's login theme logs in only the last user and has no picker, so the
 # child could never choose their account. "omarchy-kids" is a copy of it
@@ -46,8 +48,6 @@ disable_autologin() {
             as_root mv "$f" "$f.disabled-by-omarchy-kids"
         fi
     done
-
-    [ -f "$OLD_OVERRIDE" ] && as_root rm -f "$OLD_OVERRIDE"
 
     install_login_theme
     local theme_conf=""
