@@ -8,10 +8,11 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export REPO_ROOT
 MODULES_DIR="$REPO_ROOT/modules"
 
-MODULE_ORDER=(preflight login child-account packages webapps browser-policy dns screen-time desktop lockdown backup ssh-admin snapshot)
+MODULE_ORDER=(preflight login tpm-unlock child-account packages webapps browser-policy dns screen-time desktop lockdown backup ssh-admin snapshot)
 declare -A MODULE_FILE=(
     [preflight]="10-preflight.sh"
     [login]="15-login.sh"
+    [tpm-unlock]="17-tpm-unlock.sh"
     [child-account]="20-child-account.sh"
     [packages]="25-packages.sh"
     [webapps]="30-webapps.sh"

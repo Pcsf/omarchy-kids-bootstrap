@@ -15,6 +15,7 @@ Thirteen modules, in this order (=./bootstrap.sh --help= lists them):
 |----------------+-------------------------------------------------------------------------------------------------------------------|
 | preflight      | Reports Omarchy version, accounts, LUKS/btrfs/snapper, login manager, network stack. Changes nothing.             |
 | login          | Disables the SDDM autologin Omarchy's installer set up; installs an override that keeps it off; sets the hostname. |
+| tpm-unlock     | Binds the TPM to the LUKS disk (Clevis) so boot needs no disk passphrase; the passphrase stays as fallback. =TPM_UNLOCK=no= skips it. |
 | child-account  | Creates the child (no wheel), sets its password, =chmod 700= on the parent's home, provisions the Omarchy desktop. |
 | packages       | Installs the learning/creative/play apps (=config/packages.txt=, =config/aur-packages.txt=).                      |
 | webapps        | Installs Omarchy web-app launchers in the child's account (Scratch, Tinkercad, ...; =config/webapps.txt=).        |
