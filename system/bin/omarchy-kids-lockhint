@@ -21,12 +21,18 @@ INTERVAL="${OMARCHY_KIDS_LOCKHINT_INTERVAL:-5}"
 
 # The service may start before uwsm exports the Hyprland instance; find it.
 hypr_env() {
-    local dir sig
-    [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && [ -d "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr/$HYPRLAND_INSTANCE_SIGNATURE" ] && return 0
-    dir="$(ls -1dt "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"/hypr/*/ 2>/dev/null | head -1)"
-    [ -n "$dir" ] || return 1
-    sig="$(basename "$dir")"
-    export HYPRLAND_INSTANCE_SIGNATURE="$sig"
+    local run="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}" dir best=""
+    if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && [ -S "$run/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket.sock" ]; then
+        return 0
+    fi
+    # Newest live Hyprland instance (pure bash: no ls, which may be aliased).
+    for dir in "$run"/hypr/*/; do
+        [ -S "$dir.socket.sock" ] || continue
+        if [ -z "$best" ] || [ "$dir" -nt "$best" ]; then best="$dir"; fi
+    done
+    [ -n "$best" ] || return 1
+    best="${best%/}"
+    export HYPRLAND_INSTANCE_SIGNATURE="${best##*/}"
 }
 
 is_locked() {
