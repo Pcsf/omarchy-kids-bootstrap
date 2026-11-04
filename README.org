@@ -22,7 +22,7 @@ Fourteen modules, in this order (=./bootstrap.sh --help= lists them):
 | browser-policy | Renders a mandatory Chromium policy from =config/allowed-sites.txt=: everything blocked except the allowlist.        |
 | dns            | DNS-over-TLS to a NextDNS profile via systemd-resolved; NetworkManager ignores DHCP DNS; ufw blocks other DNS.       |
 | screen-time    | Timekpr-nExT: daily quota, allowed hours, PlayTime for games, tty counted, paused while the screen is locked.        |
-| desktop        | Child's Hyprland: learning shortcuts instead of Omarchy's app bindings, developer launchers hidden, quieter bar.     |
+| desktop        | Child's Hyprland: learning shortcuts instead of Omarchy's app bindings, developer launchers hidden, quieter bar; one sudo rule so a theme change can recolour the browser without asking for the parent's password. |
 | lockdown       | File ACLs deny the child other browsers and network tools; a pacman hook re-applies them; =su= limited to wheel.     |
 | backup         | Daily restic backup of the child's work to an external disk or NAS, as a system timer.                               |
 | ssh-admin      | sshd for the parent only, from the LAN subnet; passwords turn off once a key is authorized.                          |
@@ -101,7 +101,11 @@ link into it.
   done, so the child's first login does not pull in the rest.
 - *Enforcement never lives in the child's home.* Policies, DNS, firewall,
   Timekpr, ACLs are root-owned system state. The desktop module is cosmetic
-  and documented as such.
+  and documented as such, apart from one root-owned sudo rule: the child may
+  run =/usr/bin/omarchy-theme-set-browser-policy= with a six-hex-digit colour
+  and nothing else. Omarchy's theme switch calls it to write the browsers'
+  =color.json=; without the rule it falls back to pkexec, which asks for an
+  administrator's password on every theme change.
 - *Two layers for the browser.* The Chromium policy (allowlist, no DevTools,
   no extensions, no incognito, DoH off) plus ACLs that keep the child out of
   every other browser on the machine. Chromium policies are machine-wide, so

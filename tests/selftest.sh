@@ -74,7 +74,17 @@ planted="$(REPO_ROOT="$tmpdir" render_policy 2>/dev/null | jq -r '.URLAllowlist 
 [ "$planted" = "1" ] && ok "policy: malformed entry rejected (planted)" || bad "policy: planted malformed entry not rejected ($planted)"
 rm -rf "$tmpdir"
 
-# 8. Non-ASCII guard on what this repo writes (docs, configs, scripts), with a
+# 7b. The theme-colour sudoers grant parses, names only the helper with a
+#     six-hex-digit argument, and visudo rejects a planted broken rule.
+# shellcheck source=../modules/50-desktop.sh
+source modules/50-desktop.sh
+grant="$(render_theme_grant)"
+visudo -cqf - <<<"$grant" && ok "theme grant: visudo accepts it" || bad "theme grant: visudo rejects it"
+[ "$(wc -l <<<"$grant")" = "1" ] && grep -qx "$KID_USER ALL=(root) NOPASSWD: /usr/bin/omarchy-theme-set-browser-policy \(\[0-9a-f\]\)\{6\}" <<<"$grant" \
+    && ok "theme grant: one command, hex argument only" || bad "theme grant: unexpected rule: $grant"
+visudo -cqf - <<<"${grant/(root)/(root}" 2>/dev/null && bad "(planted) visudo accepted a broken rule" || ok "(planted) visudo rejects a broken rule"
+
+# 8.Non-ASCII guard on what this repo writes (docs, configs, scripts), with a
 #    planted positive so an empty result means something.
 if grep -rnP '[^\x00-\x7F]' --exclude-dir=.git . >/dev/null; then
     bad "non-ASCII characters present:"; grep -rnP '[^\x00-\x7F]' --exclude-dir=.git . | head -5

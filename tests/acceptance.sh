@@ -30,11 +30,16 @@ sudo_grants() {
         | sed -E 's/![^,[:space:]]+//g; s/\([^)]*\)//; s/(NOPASSWD|PASSWD|SETENV|NOEXEC)://g; s/[,[:space:]]+$//' \
         | grep -E '[^[:space:],]'
 }
-if grants="$(sudo_grants "$KID_USER")"; then
-    failed "sudo grants $KID_USER something: $(printf '%s' "$grants" | tr '\n' ' ')"
+# The one grant is Omarchy's theme-colour helper (modules/50-desktop.sh).
+theme_grant="/usr/bin/omarchy-theme-set-browser-policy [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]"
+grants="$(sudo_grants "$KID_USER" | sed -E 's/^[[:space:]]+//')"
+if [ "$grants" = "$theme_grant" ]; then
+    pass "sudo grants $KID_USER only the theme-colour helper"
 else
-    pass "sudo grants $KID_USER nothing"
+    failed "sudo grants $KID_USER: ${grants:-nothing (theme changes will ask for a password)}"
 fi
+check "theme grant is passwordless for a colour" bash -c "sudo -n -l -l -U $KID_USER /usr/bin/omarchy-theme-set-browser-policy 1c2027 | grep -q '!authenticate'"
+check "(planted) theme grant refuses a non-colour argument" bash -c "! sudo -n -l -U $KID_USER /usr/bin/omarchy-theme-set-browser-policy ../x"
 check "parent home $parent_home is mode 700" test "$(stat -c '%a' "$parent_home")" = "700"
 check "child home is not world-writable" test "$(stat -c '%a' "$kid_home_dir" | cut -c3)" != "7"
 # Planted negative: the privileged-group test must fire for the parent.

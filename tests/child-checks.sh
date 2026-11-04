@@ -16,6 +16,8 @@ echo "I am $(id)"
 [ "$(id -u)" -ne 0 ] || { echo "run this as the child, not root"; exit 1; }
 
 must_fail "sudo without a password" sudo -n true
+must_pass "theme colour helper needs no password" sudo -n -l /usr/bin/omarchy-theme-set-browser-policy 1c2027
+must_fail "theme colour helper with a non-colour argument" sudo -n -l /usr/bin/omarchy-theme-set-browser-policy ../x
 must_fail "reading the parent's home" ls "/home/$parent"
 must_fail "writing to /etc" touch /etc/omarchy-kids-child-test
 must_fail "editing the browser policy" bash -c 'echo x >> /etc/chromium/policies/managed/omarchy-kids.json'
