@@ -5,11 +5,11 @@
 #   example.com/path   matches that path prefix
 # '#' starts a comment. Changes apply after the browser-policy module re-runs.
 #
-# Most sites load assets from other domains (CDNs, asset hosts, login
-# providers). When a page looks broken for the child, test the same page as
-# the parent with the policy temporarily widened, or read the blocked URLs in
-# chrome://policy/logs, then add the missing domain below and re-run
-# ./bootstrap.sh --only browser-policy.
+# The policy blocks page and frame navigations, not the scripts and images a
+# page loads. A site breaks where it sends the browser to another domain: a
+# sign-in provider, an embedded video, a robot check. Find that domain in the
+# address bar of the "blocked" page or in chrome://policy/logs, add it below
+# and re-run ./bootstrap.sh --only browser-policy.
 
 # Code
 scratch.mit.edu
@@ -43,8 +43,25 @@ wikimedia.org
 
 # Explore
 stellarium-web.org
+stellarium.com               # stellarium-web.org redirects to stellarium.com/sky
 nasa.gov
 esa.int
+
+# Watch
+youtubekids.com
+
+# Sign-in and verification steps the sites above send the browser to.
+# The policy blocks page and frame navigations only, so a site breaks exactly
+# where it leaves its own domain: "Sign in with Google", an embedded video,
+# an "are you a robot" check. Path entries keep the rest of the domain blocked.
+accounts.google.com          # Sign in with Google (Tinkercad, Khan Academy, Code.org, YouTube Kids)
+accounts.youtube.com         # Google sign-in hand-over to YouTube Kids
+youtube.com/signin           # same hand-over; the rest of youtube.com stays blocked
+youtube.com/embed            # videos embedded in lessons (Khan Academy, Code.org, NASA)
+youtube-nocookie.com/embed
+google.com/recaptcha         # robot check frames (Squla, sign-up forms)
+recaptcha.net/recaptcha
+challenges.cloudflare.com    # robot check (TypingClub)
 
 # Internal browser pages the child may open
 chrome://policy

@@ -112,9 +112,11 @@ child's own session: they prove the same things with the child's identity.
 
 * Troubleshooting
 
-- *A site shows ERR_BLOCKED_BY_ADMINISTRATOR.* Its assets come from a domain
-  not in the allowlist. Add the domain, re-run =--only browser-policy=,
-  reload. =chrome://policy/logs= in the child's browser lists blocked URLs.
+- *A site shows ERR_BLOCKED_BY_ADMINISTRATOR.* The page, or a frame inside
+  it (sign-in, embedded video, robot check), is on a domain not in the
+  allowlist. Scripts and images are never blocked. Add the domain, re-run
+  =--only browser-policy=, reload. =chrome://policy/logs= in the child's
+  browser lists blocked URLs.
 - *Web app opens blank.* Same cause; the launcher's URL host must be
   allowlisted (the webapps module warns about it).
 - *The login screen is black after an update.* Log in on =Ctrl+Alt+F3= as
