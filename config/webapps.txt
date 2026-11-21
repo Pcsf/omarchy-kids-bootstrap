@@ -12,3 +12,5 @@ Khan Academy|https://www.khanacademy.org/|
 Typing Club|https://www.typingclub.com/|
 # Dutch school practice
 Squla|https://www.squla.nl/|
+# Watch (signs in with the parent's Google account the first time)
+YouTube Kids|https://www.youtubekids.com/|
