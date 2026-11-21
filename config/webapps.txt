@@ -1,6 +1,6 @@
 # Web apps installed for the CHILD as Omarchy launchers (Chromium --app windows).
 # Format: name|url|icon
-# - icon: a bundled icon name under /usr/share/icons/hicolor, or empty to let
+# - icon: an icon URL, a bundled icon name under /usr/share/icons/hicolor, or empty to let
 #   Omarchy fetch the site's own icon. Empty is the safe default.
 # - Every domain here must also appear in allowed-sites.txt, or the policy
 #   blocks the window with ERR_BLOCKED_BY_ADMINISTRATOR.
@@ -13,4 +13,4 @@ Typing Club|https://www.typingclub.com/|
 # Dutch school practice
 Squla|https://www.squla.nl/|
 # Watch (signs in with the parent's Google account the first time)
-YouTube Kids|https://www.youtubekids.com/|
+YouTube Kids|https://www.youtubekids.com/|https://www.gstatic.com/ytkids/web/favicons/ytkids_favicon_144_2.png
