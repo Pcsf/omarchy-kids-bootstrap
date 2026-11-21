@@ -15,6 +15,8 @@ krita
 inkscape
 
 # Design (Tinkercad is a web app; FreeCAD and OpenSCAD for a later stage)
+goxel                        # build with cubes (voxels), exports STL; [extra] 2026-11-21
+leocad                       # virtual LEGO bricks; [extra] 2026-11-21
 #freecad
 #openscad
 

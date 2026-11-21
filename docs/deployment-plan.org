@@ -34,7 +34,7 @@ What changed, and why:
   =limine-snapper-sync=, and =omarchy-snapshot create/restore=. Snapshots do
   not cover =/home=, as the draft said.
 - *Packages.* gcompris-qt, krita, inkscape, stellarium, luanti,
-  python-pygame, kturtle, prismlauncher, restic are in [extra];
+  python-pygame, kturtle, prismlauncher, restic, goxel, leocad are in [extra];
   minecraft-launcher is in the [omarchy] repo; timekpr-next 0.5.11 is in the
   AUR; thonny is installed from PyPI with =uv= (its AUR build broke on a
   pinned =uv_build=). No official Scratch desktop package: the Scratch
@@ -226,7 +226,7 @@ Six activities, two apps each to start:
 | Code     | Scratch (web), Thonny + Python + Pygame     | events, loops, variables, debugging          |
 | Learn    | GCompris, KTurtle, Khan Academy, Squla      | maths, reading, Dutch and English            |
 | Draw     | Krita, Inkscape                             | drawing, geometry, visual communication      |
-| Design   | Tinkercad (web); later FreeCAD/OpenSCAD     | spatial reasoning, dimensions, 3D printing   |
+| Design   | Tinkercad (web), Goxel, LeoCAD; later FreeCAD | spatial reasoning, dimensions, 3D printing   |
 | Explore  | Stellarium; later KStars                    | astronomy, physics, curiosity                |
 | Play     | Luanti; Minecraft Java on parent decision   | single player, no public servers, chat off   |
 
