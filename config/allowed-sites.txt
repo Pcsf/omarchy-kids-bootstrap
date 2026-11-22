@@ -57,6 +57,8 @@ youtubekids.com
 accounts.google.com          # Sign in with Google (Tinkercad, Khan Academy, Code.org, YouTube Kids)
 accounts.youtube.com         # Google sign-in hand-over to YouTube Kids
 youtube.com/signin           # same hand-over; the rest of youtube.com stays blocked
+accounts.google.com.br/accounts/SetSID   # Google finishes a sign-in on the account's country domain
+accounts.google.nl/accounts/SetSID
 youtube.com/embed            # videos embedded in lessons (Khan Academy, Code.org, NASA)
 youtube-nocookie.com/embed
 google.com/recaptcha         # robot check frames (Squla, sign-up forms)
